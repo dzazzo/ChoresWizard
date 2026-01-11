@@ -1,0 +1,21 @@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.Identity.Web
+@inject IAuthorizationService AuthorizationService
+
+<ul class="navbar-nav">
+@if (User.Identity?.IsAuthenticated ?? false)
+{
+    <li class="nav-item">
+        <span class="nav-link text-light">👋 Hello, @User.Identity.Name!</span>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link text-light" asp-area="MicrosoftIdentity" asp-controller="Account" asp-action="SignOut">🚪 Sign Out</a>
+    </li>
+}
+else
+{
+    <li class="nav-item">
+        <a class="nav-link text-light" asp-area="MicrosoftIdentity" asp-controller="Account" asp-action="SignIn">🔑 Sign In</a>
+    </li>
+}
+</ul>

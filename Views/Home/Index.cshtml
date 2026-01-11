@@ -1,0 +1,167 @@
+﻿@model List<Zazzo.ChoresWizard2000.Models.ChoreAssignment>
+@{
+    ViewData["Title"] = "The Sorting Hat - Chore Assignments";
+}
+
+<div class="text-center">
+    <h1 class="display-4 magical-title">🧙‍♂️ The Sorting Hat</h1>
+    <p class="lead">Monthly Chore Distribution for the Zazzo Family</p>
+</div>
+
+<div class="row my-4">
+    <div class="col-md-12 text-center">
+        <a asp-controller="SortingHat" asp-action="Ceremony" class="btn btn-primary btn-lg magical-button">
+            🎩 Perform Sorting Ceremony
+        </a>
+        @if (Model != null && Model.Any())
+        {
+            <a asp-controller="Assignments" asp-action="Index" class="btn btn-info btn-lg ms-3">
+                ✏️ Edit Assignments
+            </a>
+            <form asp-controller="SortingHat" asp-action="ClearCurrentMonth" method="post" style="display: inline-block;" 
+                  onsubmit="return confirm('Are you sure you want to clear all assignments for this month? This cannot be undone.');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-warning btn-lg ms-3">
+                    🗑️ Clear This Month's Assignments
+                </button>
+            </form>
+        }
+    </div>
+</div>
+
+@if (Model != null && Model.Any())
+{
+    <div class="card shadow-lg">
+        <div class="card-header bg-dark text-white">
+            <h3>📜 Current Month's Assignments - @DateTime.Now.ToString("MMMM yyyy")</h3>
+        </div>
+        <div class="card-body">
+            @foreach (var group in Model.GroupBy(a => a.FamilyMember))
+            {
+                <div class="member-section mb-4">
+                    <h4 class="member-name">@group.Key?.Name</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>📅 Daily Chores</h5>
+                            <ul class="list-group">
+                                @foreach (var assignment in group.Where(a => a.Chore?.Frequency == Zazzo.ChoresWizard2000.Models.ChoreFrequency.Daily))
+                                {
+                                    <li class="list-group-item">
+                                        @assignment.Chore?.Name
+                                        @if (assignment.Chore?.AssignToGroup != Zazzo.ChoresWizard2000.Models.AssignToGroup.OnePersonOnly)
+                                        {
+                                            <span class="badge bg-success ms-1">👥</span>
+                                        }
+                                        else if (assignment.Chore?.PinnedToFamilyMemberId.HasValue == true)
+                                        {
+                                            <span class="badge bg-warning text-dark ms-1">📌</span>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(assignment.Chore?.Category))
+                                        {
+                                            <span class="badge bg-info ms-2">@assignment.Chore.Category</span>
+                                        }
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>📅 Weekly Chores</h5>
+                            <ul class="list-group">
+                                @foreach (var assignment in group.Where(a => a.Chore?.Frequency == Zazzo.ChoresWizard2000.Models.ChoreFrequency.Weekly))
+                                {
+                                    <li class="list-group-item">
+                                        @assignment.Chore?.Name
+                                        @if (assignment.Chore?.AssignToGroup != Zazzo.ChoresWizard2000.Models.AssignToGroup.OnePersonOnly)
+                                        {
+                                            <span class="badge bg-success ms-1">👥</span>
+                                        }
+                                        else if (assignment.Chore?.PinnedToFamilyMemberId.HasValue == true)
+                                        {
+                                            <span class="badge bg-warning text-dark ms-1">📌</span>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(assignment.Chore?.Category))
+                                        {
+                                            <span class="badge bg-info ms-2">@assignment.Chore.Category</span>
+                                        }
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <hr />
+            }
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-info text-center">
+        <h4>✨ No chores assigned yet this month!</h4>
+        <p>Click the Sorting Hat to assign chores for this month.</p>
+    </div>
+}
+
+<div class="row my-5">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">👨‍👩‍👧‍👦 Family Members</h5>
+                <p class="card-text">Manage family members</p>
+                <a asp-controller="FamilyMembers" asp-action="Index" class="btn btn-outline-primary">Manage</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">🧹 Chores</h5>
+                <p class="card-text">Manage chores list</p>
+                <a asp-controller="Chores" asp-action="Index" class="btn btn-outline-primary">Manage</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">📊 View History</h5>
+                <p class="card-text">Past assignments</p>
+                <a asp-controller="SortingHat" asp-action="Index" class="btn btn-outline-primary">View</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .magical-title {
+        font-family: 'Georgia', serif;
+        color: #8b4513;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        margin: 20px 0;
+    }
+    
+    .magical-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 15px 30px;
+        font-size: 1.2em;
+        transition: transform 0.3s;
+    }
+    
+    .magical-button:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+    
+    .member-section {
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 10px;
+    }
+    
+    .member-name {
+        color: #8b4513;
+        font-weight: bold;
+        margin-bottom: 15px;
+    }
+</style>

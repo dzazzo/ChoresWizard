@@ -1,0 +1,39 @@
+@model IEnumerable<Zazzo.ChoresWizard2000.Models.FamilyMember>
+@{
+    ViewData["Title"] = "Family Members";
+}
+
+<h2>👨‍👩‍👧‍👦 Family Members</h2>
+
+<p>
+    <a asp-action="Create" class="btn btn-success">Add New Member</a>
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Parent</th>
+            <th>Teen</th>
+            <th>Active</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@(item.IsParent ? "✓" : "")</td>
+                <td>@(item.IsTeen ? "✓" : "")</td>
+                <td>@(item.IsActive ? "✓" : "")</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-primary">Edit</a>
+                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a asp-controller="Home" asp-action="Index" class="btn btn-secondary">← Back to Home</a>

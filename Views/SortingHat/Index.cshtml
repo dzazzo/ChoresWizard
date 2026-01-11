@@ -1,0 +1,35 @@
+@model List<Zazzo.ChoresWizard2000.Models.ChoreAssignment>
+@{
+    ViewData["Title"] = "Assignment History";
+}
+
+<h2>📊 Assignment History</h2>
+
+@if (Model != null && Model.Any())
+{
+    <div class="card">
+        <div class="card-body">
+            <h3>Current Month - @DateTime.Now.ToString("MMMM yyyy")</h3>
+            @foreach (var group in Model.GroupBy(a => a.FamilyMember))
+            {
+                <div class="mb-3">
+                    <h5>@group.Key?.Name</h5>
+                    <ul>
+                        @foreach (var assignment in group)
+                        {
+                            <li>@assignment.Chore?.Name (@assignment.Chore?.Frequency)</li>
+                        }
+                    </ul>
+                </div>
+            }
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-info">No assignments found for this month.</div>
+}
+
+<div class="mt-3">
+    <a asp-controller="Home" asp-action="Index" class="btn btn-secondary">← Back to Home</a>
+</div>

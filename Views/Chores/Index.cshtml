@@ -1,0 +1,61 @@
+@model IEnumerable<Zazzo.ChoresWizard2000.Models.Chore>
+@{
+    ViewData["Title"] = "Chores";
+}
+
+<h2>🧹 Chores</h2>
+
+<p>
+    <a asp-action="Create" class="btn btn-success">Add New Chore</a>
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Frequency</th>
+            <th>Age Restriction</th>
+            <th>Assignment</th>
+            <th>Active</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>
+                    @if (!string.IsNullOrWhiteSpace(item.Category))
+                    {
+                        <span class="badge bg-info">@item.Category</span>
+                    }
+                </td>
+                <td>@item.Frequency</td>
+                <td>@item.AgeRestriction</td>
+                <td>
+                    @if (item.AssignToGroup != Zazzo.ChoresWizard2000.Models.AssignToGroup.OnePersonOnly)
+                    {
+                        <span class="badge bg-success">👥 @item.AssignToGroup</span>
+                    }
+                    else if (item.PinnedToFamilyMember != null)
+                    {
+                        <span class="badge bg-warning text-dark">📌 @item.PinnedToFamilyMember.Name</span>
+                    }
+                    else
+                    {
+                        <span class="text-muted">Random</span>
+                    }
+                </td>
+                <td>@(item.IsActive ? "✓" : "")</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-primary">Edit</a>
+                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a asp-controller="Home" asp-action="Index" class="btn btn-secondary">← Back to Home</a>
