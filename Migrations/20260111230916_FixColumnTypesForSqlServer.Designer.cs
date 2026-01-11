@@ -11,8 +11,8 @@ using Zazzo.ChoresWizard2000.Data;
 namespace Zazzo.ChoresWizard2000.Migrations
 {
     [DbContext(typeof(ChoresDbContext))]
-    [Migration("20260111225546_FixStringColumnTypes")]
-    partial class FixStringColumnTypes
+    [Migration("20260111230916_FixColumnTypesForSqlServer")]
+    partial class FixColumnTypesForSqlServer
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
