@@ -27,6 +27,15 @@ public class SortingHatController : Controller
     public async Task<IActionResult> Sort()
     {
         var now = DateTime.Now;
+        
+        // Check if assignments already exist for this month
+        var existingAssignments = await _sortingHatService.GetCurrentMonthAssignmentsAsync();
+        if (existingAssignments.Any())
+        {
+            TempData["Error"] = "Assignments already exist for this month. Clear them first to re-sort.";
+            return RedirectToAction(nameof(Results));
+        }
+        
         await _sortingHatService.DistributeChoresAsync(now.Year, now.Month);
         return RedirectToAction(nameof(Results));
     }

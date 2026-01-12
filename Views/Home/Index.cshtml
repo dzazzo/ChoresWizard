@@ -88,6 +88,54 @@
                             </ul>
                         </div>
                     </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <h5>📆 Bi-Weekly Chores</h5>
+                            <ul class="list-group">
+                                @foreach (var assignment in group.Where(a => a.Chore?.Frequency == Zazzo.ChoresWizard2000.Models.ChoreFrequency.BiWeekly))
+                                {
+                                    <li class="list-group-item">
+                                        @assignment.Chore?.Name
+                                        @if (assignment.Chore?.AssignToGroup != Zazzo.ChoresWizard2000.Models.AssignToGroup.OnePersonOnly)
+                                        {
+                                            <span class="badge bg-success ms-1">👥</span>
+                                        }
+                                        else if (assignment.Chore?.PinnedToFamilyMemberId.HasValue == true)
+                                        {
+                                            <span class="badge bg-warning text-dark ms-1">📌</span>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(assignment.Chore?.Category))
+                                        {
+                                            <span class="badge bg-info ms-2">@assignment.Chore.Category</span>
+                                        }
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>📅 Monthly Chores</h5>
+                            <ul class="list-group">
+                                @foreach (var assignment in group.Where(a => a.Chore?.Frequency == Zazzo.ChoresWizard2000.Models.ChoreFrequency.Monthly))
+                                {
+                                    <li class="list-group-item">
+                                        @assignment.Chore?.Name
+                                        @if (assignment.Chore?.AssignToGroup != Zazzo.ChoresWizard2000.Models.AssignToGroup.OnePersonOnly)
+                                        {
+                                            <span class="badge bg-success ms-1">👥</span>
+                                        }
+                                        else if (assignment.Chore?.PinnedToFamilyMemberId.HasValue == true)
+                                        {
+                                            <span class="badge bg-warning text-dark ms-1">📌</span>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(assignment.Chore?.Category))
+                                        {
+                                            <span class="badge bg-info ms-2">@assignment.Chore.Category</span>
+                                        }
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
                 </div>
                 <hr />
             }

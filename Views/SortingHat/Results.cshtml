@@ -35,10 +35,40 @@
                                     }
                                 </ul>
                             </div>
-                            <div>
+                            <div class="mb-3">
                                 <h5 class="section-title">🗓️ Weekly Chores</h5>
                                 <ul class="chore-list">
                                     @foreach (var assignment in group.Where(a => a.Chore?.Frequency == Zazzo.ChoresWizard2000.Models.ChoreFrequency.Weekly))
+                                    {
+                                        <li>
+                                            @assignment.Chore?.Name
+                                            @if (!string.IsNullOrWhiteSpace(assignment.Chore?.Category))
+                                            {
+                                                <span class="badge bg-info ms-2">@assignment.Chore.Category</span>
+                                            }
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                            <div class="mb-3">
+                                <h5 class="section-title">📆 Bi-Weekly Chores</h5>
+                                <ul class="chore-list">
+                                    @foreach (var assignment in group.Where(a => a.Chore?.Frequency == Zazzo.ChoresWizard2000.Models.ChoreFrequency.BiWeekly))
+                                    {
+                                        <li>
+                                            @assignment.Chore?.Name
+                                            @if (!string.IsNullOrWhiteSpace(assignment.Chore?.Category))
+                                            {
+                                                <span class="badge bg-info ms-2">@assignment.Chore.Category</span>
+                                            }
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                            <div>
+                                <h5 class="section-title">📅 Monthly Chores</h5>
+                                <ul class="chore-list">
+                                    @foreach (var assignment in group.Where(a => a.Chore?.Frequency == Zazzo.ChoresWizard2000.Models.ChoreFrequency.Monthly))
                                     {
                                         <li>
                                             @assignment.Chore?.Name

@@ -118,6 +118,12 @@ public class ChoresController : Controller
         var chore = await _context.Chores.FindAsync(id);
         if (chore != null)
         {
+            // Delete related assignments first
+            var relatedAssignments = await _context.ChoreAssignments
+                .Where(ca => ca.ChoreId == id)
+                .ToListAsync();
+            _context.ChoreAssignments.RemoveRange(relatedAssignments);
+            
             _context.Chores.Remove(chore);
             await _context.SaveChangesAsync();
         }

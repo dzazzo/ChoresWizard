@@ -34,6 +34,8 @@ public class SortingHatService
 
         var dailyChores = chores.Where(c => c.Frequency == ChoreFrequency.Daily).ToList();
         var weeklyChores = chores.Where(c => c.Frequency == ChoreFrequency.Weekly).ToList();
+        var biWeeklyChores = chores.Where(c => c.Frequency == ChoreFrequency.BiWeekly).ToList();
+        var monthlyChores = chores.Where(c => c.Frequency == ChoreFrequency.Monthly).ToList();
 
         var newAssignments = new List<ChoreAssignment>();
 
@@ -44,6 +46,8 @@ public class SortingHatService
         // Filter out group chores from regular distribution
         var regularDailyChores = dailyChores.Where(c => c.AssignToGroup == AssignToGroup.OnePersonOnly).ToList();
         var regularWeeklyChores = weeklyChores.Where(c => c.AssignToGroup == AssignToGroup.OnePersonOnly).ToList();
+        var regularBiWeeklyChores = biWeeklyChores.Where(c => c.AssignToGroup == AssignToGroup.OnePersonOnly).ToList();
+        var regularMonthlyChores = monthlyChores.Where(c => c.AssignToGroup == AssignToGroup.OnePersonOnly).ToList();
 
         // Distribute daily chores (2-3 per person)
         newAssignments.AddRange(DistributeChoresByFrequency(
@@ -52,6 +56,14 @@ public class SortingHatService
         // Distribute weekly chores (1-2 per person)
         newAssignments.AddRange(DistributeChoresByFrequency(
             regularWeeklyChores, familyMembers, previousAssignments, year, month, 1, 2));
+
+        // Distribute bi-weekly chores (1 per person)
+        newAssignments.AddRange(DistributeChoresByFrequency(
+            regularBiWeeklyChores, familyMembers, previousAssignments, year, month, 0, 2));
+
+        // Distribute monthly chores (1 per person)
+        newAssignments.AddRange(DistributeChoresByFrequency(
+            regularMonthlyChores, familyMembers, previousAssignments, year, month, 0, 1));
 
         // Save assignments
         await _context.ChoreAssignments.AddRangeAsync(newAssignments);
@@ -125,6 +137,12 @@ public class SortingHatService
 
             // If no preferred members, fall back to all eligible
             var candidatePool = preferredMembers.Any() ? preferredMembers : eligibleMembers;
+
+            // Skip if no eligible members at all
+            if (!candidatePool.Any())
+            {
+                continue;
+            }
 
             // Find members who haven't reached their quota AND category limit
             var availableMembers = candidatePool
@@ -245,14 +263,42 @@ public class SortingHatService
         int minPerPerson,
         Dictionary<int, int> memberChoreCount)
     {
-        // This is a simple balancing - could be enhanced with more sophisticated logic
-        foreach (var member in familyMembers)
+        // Find members below minimum and those above average
+        var underAssigned = familyMembers
+            .Where(m => memberChoreCount[m.Id] < minPerPerson)
+            .ToList();
+
+        if (!underAssigned.Any() || !allChores.Any())
+            return;
+
+        // Get chores that could be reassigned (not pinned)
+        var reassignableChores = assignments
+            .Where(a => !allChores.First(c => c.Id == a.ChoreId).PinnedToFamilyMemberId.HasValue)
+            .ToList();
+
+        foreach (var member in underAssigned)
         {
-            if (memberChoreCount[member.Id] < minPerPerson)
+            var neededCount = minPerPerson - memberChoreCount[member.Id];
+            
+            for (int i = 0; i < neededCount && reassignableChores.Any(); i++)
             {
-                var neededChores = minPerPerson - memberChoreCount[member.Id];
-                // Note: In a real scenario, you'd want more sophisticated balancing
-                // This is a placeholder for the minimum logic
+                // Find an assignment from someone who has more than minimum
+                var donorAssignment = reassignableChores
+                    .FirstOrDefault(a => memberChoreCount[a.FamilyMemberId] > minPerPerson);
+
+                if (donorAssignment != null)
+                {
+                    var chore = allChores.First(c => c.Id == donorAssignment.ChoreId);
+                    var eligibleMembers = GetEligibleMembers(chore, new List<FamilyMember> { member });
+                    
+                    if (eligibleMembers.Contains(member))
+                    {
+                        memberChoreCount[donorAssignment.FamilyMemberId]--;
+                        donorAssignment.FamilyMemberId = member.Id;
+                        memberChoreCount[member.Id]++;
+                        reassignableChores.Remove(donorAssignment);
+                    }
+                }
             }
         }
     }

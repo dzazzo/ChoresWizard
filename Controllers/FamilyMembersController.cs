@@ -90,6 +90,21 @@ public class FamilyMembersController : Controller
         var familyMember = await _context.FamilyMembers.FindAsync(id);
         if (familyMember != null)
         {
+            // Delete related assignments first
+            var relatedAssignments = await _context.ChoreAssignments
+                .Where(ca => ca.FamilyMemberId == id)
+                .ToListAsync();
+            _context.ChoreAssignments.RemoveRange(relatedAssignments);
+            
+            // Also unpin any chores pinned to this member
+            var pinnedChores = await _context.Chores
+                .Where(c => c.PinnedToFamilyMemberId == id)
+                .ToListAsync();
+            foreach (var chore in pinnedChores)
+            {
+                chore.PinnedToFamilyMemberId = null;
+            }
+            
             _context.FamilyMembers.Remove(familyMember);
             await _context.SaveChangesAsync();
         }
