@@ -26,7 +26,7 @@ public class SortingHatController : Controller
     [HttpPost]
     public async Task<IActionResult> Sort()
     {
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow;
         
         // Check if assignments already exist for this month
         var existingAssignments = await _sortingHatService.GetCurrentMonthAssignmentsAsync();
@@ -49,7 +49,7 @@ public class SortingHatController : Controller
     [HttpPost]
     public async Task<IActionResult> ClearCurrentMonth()
     {
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow;
         await _sortingHatService.ClearAssignmentsAsync(now.Year, now.Month);
         return RedirectToAction(nameof(Index));
     }

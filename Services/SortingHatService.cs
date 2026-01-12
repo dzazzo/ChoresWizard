@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Zazzo.ChoresWizard2000.Data;
 using Zazzo.ChoresWizard2000.Models;
 
@@ -7,15 +8,19 @@ namespace Zazzo.ChoresWizard2000.Services;
 public class SortingHatService
 {
     private readonly ChoresDbContext _context;
+    private readonly ILogger<SortingHatService> _logger;
     private readonly Random _random = new();
 
-    public SortingHatService(ChoresDbContext context)
+    public SortingHatService(ChoresDbContext context, ILogger<SortingHatService> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     public async Task<List<ChoreAssignment>> DistributeChoresAsync(int year, int month)
     {
+        _logger.LogInformation("Starting chore distribution for {Month}/{Year}", month, year);
+        
         var familyMembers = await _context.FamilyMembers
             .Where(fm => fm.IsActive)
             .ToListAsync();
@@ -23,6 +28,9 @@ public class SortingHatService
         var chores = await _context.Chores
             .Where(c => c.IsActive)
             .ToListAsync();
+        
+        _logger.LogInformation("Found {MemberCount} active family members and {ChoreCount} active chores", 
+            familyMembers.Count, chores.Count);
 
         // Get previous month's assignments to avoid repetition
         var previousMonth = month == 1 ? 12 : month - 1;
@@ -68,6 +76,9 @@ public class SortingHatService
         // Save assignments
         await _context.ChoreAssignments.AddRangeAsync(newAssignments);
         await _context.SaveChangesAsync();
+        
+        _logger.LogInformation("Successfully created {Count} chore assignments for {Month}/{Year}", 
+            newAssignments.Count, month, year);
 
         return newAssignments;
     }
@@ -108,7 +119,7 @@ public class SortingHatService
                     {
                         FamilyMemberId = pinnedMember.Id,
                         ChoreId = chore.Id,
-                        AssignedDate = DateTime.Now,
+                        AssignedDate = DateTime.UtcNow,
                         Month = month,
                         Year = year
                     });
@@ -179,7 +190,7 @@ public class SortingHatService
             {
                 FamilyMemberId = selectedMember.Id,
                 ChoreId = chore.Id,
-                AssignedDate = DateTime.Now,
+                AssignedDate = DateTime.UtcNow,
                 Month = month,
                 Year = year
             });
@@ -221,7 +232,7 @@ public class SortingHatService
                 {
                     FamilyMemberId = member.Id,
                     ChoreId = chore.Id,
-                    AssignedDate = DateTime.Now,
+                    AssignedDate = DateTime.UtcNow,
                     Month = month,
                     Year = year
                 });
@@ -305,7 +316,7 @@ public class SortingHatService
 
     public async Task<List<ChoreAssignment>> GetCurrentMonthAssignmentsAsync()
     {
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow;
         return await _context.ChoreAssignments
             .Include(ca => ca.FamilyMember)
             .Include(ca => ca.Chore)

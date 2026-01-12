@@ -17,7 +17,7 @@ public class AssignmentsController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow;
         var assignments = await _context.ChoreAssignments
             .Include(ca => ca.FamilyMember)
             .Include(ca => ca.Chore)
@@ -57,7 +57,7 @@ public class AssignmentsController : Controller
         if (assignment == null) return NotFound();
 
         assignment.FamilyMemberId = FamilyMemberId;
-        assignment.AssignedDate = DateTime.Now; // Update the assignment date
+        assignment.AssignedDate = DateTime.UtcNow; // Update the assignment date
 
         await _context.SaveChangesAsync();
         
