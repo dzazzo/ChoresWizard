@@ -9,12 +9,15 @@ public class SortingHatService
 {
     private readonly ChoresDbContext _context;
     private readonly ILogger<SortingHatService> _logger;
-    private readonly Random _random = new();
+    private readonly Random _random;
 
-    public SortingHatService(ChoresDbContext context, ILogger<SortingHatService> logger)
+    public SortingHatService(ChoresDbContext context, ILogger<SortingHatService> logger, Random? random = null)
     {
         _context = context;
         _logger = logger;
+        // Default to a non-seeded Random so production DI (which does not register
+        // Random) behaves exactly as before. Tests inject a seeded Random for determinism.
+        _random = random ?? new Random();
     }
 
     public async Task<List<ChoreAssignment>> DistributeChoresAsync(int year, int month)

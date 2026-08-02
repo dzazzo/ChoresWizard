@@ -6,6 +6,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <!-- The test project lives in a subfolder; exclude it from the Web SDK's default globs. -->
+  <ItemGroup>
+    <Compile Remove="Zazzo.ChoresWizard2000.Tests/**/*.cs" />
+    <Content Remove="Zazzo.ChoresWizard2000.Tests/**/*" />
+    <EmbeddedResource Remove="Zazzo.ChoresWizard2000.Tests/**/*" />
+    <None Remove="Zazzo.ChoresWizard2000.Tests/**/*" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Azure.Identity" Version="1.21.0" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.23.0" />
