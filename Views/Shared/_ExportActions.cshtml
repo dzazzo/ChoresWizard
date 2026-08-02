@@ -1,0 +1,22 @@
+@model Zazzo.ChoresWizard2000.Models.MonthPeriod
+@*
+    Download buttons for the month's chore export (issue #9 shipped the endpoints;
+    nothing in the UI linked to them, so they were only reachable by typing the URL).
+
+    The year/month are passed EXPLICITLY rather than relying on ExportController's
+    "no query string means current month" default. Sorting late on the last day of
+    the month and clicking a download after local midnight would otherwise export
+    the *next* month, which has no assignments yet — a silently empty PDF.
+*@
+<div class="export-actions">
+    <wa-button href="@Url.Action("Pdf", "Export", new { year = Model.Year, month = Model.Month })"
+               variant="brand" appearance="outlined" download>
+        <wa-icon slot="start" name="file-pdf" variant="duotone"></wa-icon>
+        Download PDF
+    </wa-button>
+    <wa-button href="@Url.Action("Csv", "Export", new { year = Model.Year, month = Model.Month })"
+               variant="neutral" appearance="outlined" download>
+        <wa-icon slot="start" name="file-csv" variant="duotone"></wa-icon>
+        Download CSV
+    </wa-button>
+</div>

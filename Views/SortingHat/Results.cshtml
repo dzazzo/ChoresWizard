@@ -39,6 +39,17 @@
         </div>
     }
 
+    @if (Model != null && Model.Any())
+    {
+        <wa-callout variant="brand" class="page-callout export-callout">
+            <wa-icon slot="icon" name="calendar-arrow-down" variant="duotone"></wa-icon>
+            <strong>Send it to the fridge — or to Skylight.</strong><br />
+            The PDF covers @ViewData["CurrentMonthLabel"] in full, from the 1st through the
+            last day, and marks each chore as daily or weekly (Saturdays).
+            @await Html.PartialAsync("_ExportActions", (Zazzo.ChoresWizard2000.Models.MonthPeriod)ViewData["ExportPeriod"]!)
+        </wa-callout>
+    }
+
     <div class="page-actions page-actions-centered">
         <wa-button href="@Url.Action("Index", "Home")" variant="brand" appearance="filled" size="large">
             <wa-icon slot="start" name="house" variant="duotone"></wa-icon>

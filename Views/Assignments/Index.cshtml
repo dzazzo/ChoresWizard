@@ -8,6 +8,10 @@
         <h1>📝 Edit Assignments - @ViewData["CurrentMonthLabel"]</h1>
         <p>Modify or remove individual assignments for the current month.</p>
     </div>
+    @if (Model != null && Model.Any())
+    {
+        @await Html.PartialAsync("_ExportActions", (Zazzo.ChoresWizard2000.Models.MonthPeriod)ViewData["ExportPeriod"]!)
+    }
 </header>
 
 @if (Model != null && Model.Any())

@@ -45,7 +45,11 @@ public class SortingHatController : Controller
 
     public async Task<IActionResult> Results()
     {
-        ViewData["CurrentMonthLabel"] = _sortingHatService.GetCurrentMonth().ToLabel();
+        // Capture the period once and hand it to the view so the export buttons
+        // request this exact month rather than re-resolving "current" on click.
+        var period = _sortingHatService.GetCurrentMonth();
+        ViewData["CurrentMonthLabel"] = period.ToLabel();
+        ViewData["ExportPeriod"] = period;
         var assignments = await _sortingHatService.GetCurrentMonthAssignmentsAsync();
         return View(assignments);
     }

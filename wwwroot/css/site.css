@@ -176,6 +176,19 @@ wa-page[view='mobile'] {
   margin: 1.5rem 0;
 }
 
+.export-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* Inside the results callout the buttons sit under the explanatory text; in the
+   page heading they sit inline opposite the title (flex space-between). */
+.export-callout .export-actions {
+  margin-top: 1rem;
+}
+
 .card-grid,
 .assignment-grid {
   display: grid;
