@@ -1,23 +1,23 @@
 using './main.bicep'
 
-// =====================================================
-// The Sorting Hat - Azure Deployment Parameters
-// =====================================================
+// =====================================================================
+// The Sorting Hat — deployment parameters (reconciled with production).
+//
+// Defaults in main.bicep already match the live `chores-app` environment,
+// so this file only pins the values worth being explicit about. The data
+// tier stays gated OFF; see docs/azure-setup.md before turning it on.
+// =====================================================================
 
-// Location - defaults to resource group location
-param location = 'eastus'
+param location = 'westus3'
+param dotnetVersion = 'DOTNETCORE|10.0'
+param aspNetCoreEnvironment = 'Production'
+param healthCheckPath = '/healthz'
 
-// Environment name for tagging
-param environmentName = 'prod'
-
-// Application name (used as prefix for resources)
-param appName = 'choreswizard'
-
-// SQL Server credentials
-// IMPORTANT: Replace these with secure values before deployment!
-// For production, use Azure Key Vault or deployment-time secrets
-param sqlAdminUsername = 'sqladmin'
-
-// This password should be set securely during deployment
-// Using az deployment command with --parameters sqlAdminPassword='YOUR_SECURE_PASSWORD'
-param sqlAdminPassword = '' // Set via command line for security
+// Data tier is stateful and its admin password is not in git. Keep false for
+// routine app-config reconciliation. To (re)build the data tier, set true AND
+// pass sqlAdministratorLoginPassword securely at deploy time, e.g.:
+//   az deployment group create ... \
+//     --parameters deployDataTier=true \
+//     --parameters sqlAdministratorLoginPassword='<secret>'
+param deployDataTier = false
+param sqlPublicNetworkAccess = 'Disabled'
