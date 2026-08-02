@@ -9,9 +9,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - The Sorting Hat</title>
     <script type="importmap"></script>
+    <script>
+        window.loadWebAwesomeFallback = () => {
+            if (document.querySelector('[data-webawesome-fallback]')) {
+                return;
+            }
+
+            for (const href of [
+                'https://ka-f.webawesome.com/webawesome@3.11.0/styles/themes/default.css',
+                'https://ka-f.webawesome.com/webawesome@3.11.0/styles/utilities.css'
+            ]) {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = href;
+                link.dataset.webawesomeFallback = '';
+                document.head.appendChild(link);
+            }
+
+            const loader = document.createElement('script');
+            loader.type = 'module';
+            loader.src = 'https://ka-f.webawesome.com/webawesome@3.11.0/webawesome.loader.js';
+            loader.dataset.webawesomeFallback = '';
+            document.head.appendChild(loader);
+        };
+    </script>
     @if (!string.IsNullOrWhiteSpace(webAwesomeKitCode))
     {
-        <script type="module" src="https://kit.webawesome.com/@(webAwesomeKitCode).js"></script>
+        <script src="https://kit.webawesome.com/@(webAwesomeKitCode).js"
+                crossorigin="anonymous"
+                onerror="window.loadWebAwesomeFallback()"></script>
+    }
+    else
+    {
+        <script>window.loadWebAwesomeFallback();</script>
     }
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Zazzo.ChoresWizard2000.styles.css" asp-append-version="true" />
