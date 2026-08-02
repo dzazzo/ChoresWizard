@@ -270,7 +270,7 @@ public class SortingHatService
         }
 
         // Ensure minimum assignments (if there are enough chores)
-        BalanceAssignments(assignments, familyMembers, chores, year, month, minPerPerson, memberChoreCount);
+        BalanceAssignments(assignments, familyMembers, chores, previousAssignments, year, month, minPerPerson, memberChoreCount);
 
         return assignments;
     }
@@ -330,11 +330,18 @@ public class SortingHatService
         List<ChoreAssignment> assignments,
         List<FamilyMember> familyMembers,
         List<Chore> allChores,
+        List<ChoreAssignment> previousAssignments,
         int year,
         int month,
         int minPerPerson,
         Dictionary<int, int> memberChoreCount)
     {
+        bool HadChoreLastMonth(int memberId, int choreId) =>
+            previousAssignments.Any(pa => pa.FamilyMemberId == memberId && pa.ChoreId == choreId);
+
+        bool IsEligibleFor(FamilyMember member, Chore chore) =>
+            GetEligibleMembers(chore, new List<FamilyMember> { member }).Contains(member);
+
         // Find members below minimum and those above average
         var underAssigned = familyMembers
             .Where(m => memberChoreCount[m.Id] < minPerPerson)
@@ -351,26 +358,39 @@ public class SortingHatService
         foreach (var member in underAssigned)
         {
             var neededCount = minPerPerson - memberChoreCount[member.Id];
-            
+
             for (int i = 0; i < neededCount && reassignableChores.Any(); i++)
             {
-                // Find an assignment from someone who has more than minimum
-                var donorAssignment = reassignableChores
-                    .FirstOrDefault(a => memberChoreCount[a.FamilyMemberId] > minPerPerson);
+                // Donors must sit above the minimum AND hold a chore this member is
+                // age-eligible for. Eligibility is part of the SELECTION rather than a
+                // post-hoc check: the old code picked the first over-quota assignment,
+                // silently did nothing when the member wasn't eligible, and left that same
+                // assignment at the head of the list — so it retried the identical
+                // ineligible donor every pass and an under-assigned younger child could
+                // never be balanced at all.
+                var donors = reassignableChores
+                    .Where(a => memberChoreCount[a.FamilyMemberId] > minPerPerson)
+                    .Where(a => IsEligibleFor(member, allChores.First(c => c.Id == a.ChoreId)))
+                    .ToList();
 
-                if (donorAssignment != null)
+                if (!donors.Any())
                 {
-                    var chore = allChores.First(c => c.Id == donorAssignment.ChoreId);
-                    var eligibleMembers = GetEligibleMembers(chore, new List<FamilyMember> { member });
-                    
-                    if (eligibleMembers.Contains(member))
-                    {
-                        memberChoreCount[donorAssignment.FamilyMemberId]--;
-                        donorAssignment.FamilyMemberId = member.Id;
-                        memberChoreCount[member.Id]++;
-                        reassignableChores.Remove(donorAssignment);
-                    }
+                    break;
                 }
+
+                // Prefer a chore this member did NOT have last month. Without this the
+                // balancer quietly undid the anti-repetition the main distribution loop had
+                // just applied, handing a child straight back the chore it had moved away.
+                // Repeating is still better than leaving someone under quota, so fall back
+                // to any eligible donor rather than giving up.
+                var donorAssignment =
+                    donors.FirstOrDefault(a => !HadChoreLastMonth(member.Id, a.ChoreId))
+                    ?? donors[0];
+
+                memberChoreCount[donorAssignment.FamilyMemberId]--;
+                donorAssignment.FamilyMemberId = member.Id;
+                memberChoreCount[member.Id]++;
+                reassignableChores.Remove(donorAssignment);
             }
         }
     }
