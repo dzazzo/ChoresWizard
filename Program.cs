@@ -136,6 +136,17 @@ builder.Services.AddSingleton(householdTimeZone);
 // Register services
 builder.Services.AddScoped<SortingHatService>();
 
+// Auto-resort (issue #5): an in-process scheduler that, on the last local day of the month,
+// generates the NEXT month's assignments so the sheet is ready before the month starts. It is
+// in-process (not a GitHub Actions cron) because Always On keeps the app running, which avoids a
+// public trigger endpoint and a shared secret; the last-day decision is made in household-local
+// time (America/Los_Angeles), so Pacific DST is handled correctly. Runs in every environment so
+// it can be exercised locally; disable with AutoResort:Enabled=false.
+builder.Services.Configure<AutoResortOptions>(
+    builder.Configuration.GetSection(AutoResortOptions.SectionName));
+builder.Services.AddScoped<AutoResortRunner>();
+builder.Services.AddHostedService<AutoResortScheduler>();
+
 var app = builder.Build();
 
 // Report the resolved household time zone so month-boundary behavior is never
