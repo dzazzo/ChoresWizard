@@ -1,91 +1,188 @@
-// =====================================================
-// The Sorting Hat - Azure Infrastructure
-// Deploys: App Service (Free F1) + Azure SQL Database
-// =====================================================
+// =====================================================================
+// The Sorting Hat — Azure infrastructure, reconciled with production.
+//
+// This template reflects the resources that ACTUALLY exist in resource
+// group `chores-app` (westus3), verified via read-only `az` inspection on
+// 2026-08-02 while diagnosing the outage in issue #12. Prior versions of
+// this file described a fictional F1/Windows/eastus environment.
+//
+// SAFETY MODEL
+// ------------
+// * The APP tier (plan, web app, App Insights) is always managed. It is
+//   idempotent against the live app and safe to `what-if` / apply.
+// * The DATA tier (SQL server, serverless DB, private endpoint, private DNS)
+//   is gated behind `deployDataTier` (default FALSE) because it is stateful
+//   and its admin password cannot be read back from Azure. Leave it false for
+//   routine app-config drift correction. Only set it true for an intentional
+//   (re)build of the data tier, with `sqlAdministratorLoginPassword` supplied.
+//   ALWAYS run `az deployment group what-if` first.
+//
+// RUNTIME SINGLE SOURCE OF TRUTH (issue #12)
+// ------------------------------------------
+// `dotnetVersion` sets `linuxFxVersion`. It is a Linux plan, so
+// `netFrameworkVersion` (Windows-only, the property the old template used)
+// is deliberately NOT set — that no-op is exactly what let a net10.0 build
+// deploy onto a DOTNETCORE|9.0 runtime. The CI/CD pipeline additionally
+// derives this value from <TargetFramework> in the .csproj on every deploy.
+// =====================================================================
 
-@description('Location for all resources')
-param location string = resourceGroup().location
+targetScope = 'resourceGroup'
 
-@description('Environment name (used for resource naming)')
-param environmentName string = 'prod'
+// ---- General -------------------------------------------------------
+@description('Location for all resources. Production is westus3.')
+param location string = 'westus3'
 
-@description('The base name for all resources')
-param appName string = 'choreswizard'
+@description('Runtime for the Linux App Service. MUST match <TargetFramework> in Zazzo.ChoresWizard2000.csproj (net10.0 -> DOTNETCORE|10.0).')
+param dotnetVersion string = 'DOTNETCORE|10.0'
 
-@description('SQL Server administrator username')
-param sqlAdminUsername string
+@description('ASPNETCORE_ENVIRONMENT value for the web app.')
+param aspNetCoreEnvironment string = 'Production'
 
-@description('SQL Server administrator password')
+@description('Health-check path. Must be a DB-free endpoint (issue #2 /healthz) so the serverless DB can still auto-pause.')
+param healthCheckPath string = '/healthz'
+
+@description('Common resource tags.')
+param tags object = {
+  environment: 'prod'
+  application: 'ChoresWizard2000'
+}
+
+// ---- Existing resource names (verified) ----------------------------
+@description('App Service Plan name (existing).')
+param appServicePlanName string = 'ASP-choresapp-be45'
+
+@description('Web App name (existing).')
+param webAppName string = 'zazzo-chores'
+
+@description('VNet the app integrates with (existing).')
+param vnetName string = 'zazzo-choresVnet'
+
+@description('Delegated subnet used for regional VNet integration (existing).')
+param appSubnetName string = 'zazzo-choresAppSubnet'
+
+@description('Subnet that hosts the SQL private endpoint (existing).')
+param privateEndpointSubnetName string = 'zazzo-choresSubnet'
+
+@description('SQL logical server name (existing).')
+param sqlServerName string = 'zazzo-chores-server'
+
+@description('SQL database name (existing).')
+param sqlDatabaseName string = 'zazzo-chores-database'
+
+// ---- Observability -------------------------------------------------
+@description('Log Analytics workspace backing Application Insights (created — none exists today).')
+param logAnalyticsName string = 'zazzo-chores-logs'
+
+@description('Application Insights component name (created — none exists today).')
+param appInsightsName string = 'zazzo-chores-insights'
+
+// ---- Data tier gate ------------------------------------------------
+@description('Manage the stateful SQL data tier. Default false — see SAFETY MODEL above.')
+param deployDataTier bool = false
+
+@description('SQL administrator login (existing server admin). Only used when deployDataTier=true.')
+param sqlAdministratorLogin string = 'zazzo-chores-server-admin'
+
+@description('SQL administrator password. Required (and never stored in git) only when deployDataTier=true.')
 @secure()
-param sqlAdminPassword string
+param sqlAdministratorLoginPassword string = ''
 
-// Generate unique suffix for globally unique names
-var resourceToken = uniqueString(resourceGroup().id)
-var appServicePlanName = '${appName}-plan-${resourceToken}'
-var webAppName = '${appName}-${resourceToken}'
-var sqlServerName = '${appName}-sql-${resourceToken}'
-var sqlDatabaseName = '${appName}-db'
+@description('SQL public network access when the data tier is managed. Secure default is Disabled (rely on the private endpoint).')
+@allowed(['Enabled', 'Disabled'])
+param sqlPublicNetworkAccess string = 'Disabled'
 
-// =====================================================
-// App Service Plan (Free F1 Tier)
-// =====================================================
-resource appServicePlan 'Microsoft.Web/serverfarms@2024-04-01' = {
-  name: appServicePlanName
+// ---- Derived -------------------------------------------------------
+// Deterministic FQDN so the connection string does not depend on whether the
+// data tier is managed in this deployment.
+var sqlServerFqdn = '${sqlServerName}${environment().suffixes.sqlServerHostname}'
+
+// Managed-identity (passwordless) connection string. Matches appsettings.json
+// key `AzureSqlConnection`. No password is ever placed in an app setting.
+var sqlConnectionString = 'Server=tcp:${sqlServerFqdn},1433;Initial Catalog=${sqlDatabaseName};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;'
+
+var privateDnsZoneName = 'privatelink${environment().suffixes.sqlServerHostname}'
+
+// ---- Existing network references -----------------------------------
+resource appSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' existing = {
+  name: '${vnetName}/${appSubnetName}'
+}
+
+// =====================================================================
+// Observability: Log Analytics + workspace-based Application Insights
+// =====================================================================
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: logAnalyticsName
   location: location
-  sku: {
-    name: 'F1'
-    tier: 'Free'
-    size: 'F1'
-    family: 'F'
-    capacity: 1
-  }
-  kind: 'app'
+  tags: tags
   properties: {
-    reserved: false // Windows
-  }
-  tags: {
-    environment: environmentName
-    application: 'ChoresWizard2000'
+    sku: { name: 'PerGB2018' }
+    retentionInDays: 30
   }
 }
 
-// =====================================================
-// Web App (ASP.NET Core 10.0)
-// =====================================================
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: appInsightsName
+  location: location
+  kind: 'web'
+  tags: tags
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: logAnalytics.id
+  }
+}
+
+// =====================================================================
+// App Service Plan — B1 Basic, Linux
+// =====================================================================
+resource appServicePlan 'Microsoft.Web/serverfarms@2024-04-01' = {
+  name: appServicePlanName
+  location: location
+  tags: tags
+  sku: {
+    name: 'B1'
+    tier: 'Basic'
+    size: 'B1'
+    family: 'B'
+    capacity: 1
+  }
+  kind: 'linux'
+  properties: {
+    reserved: true // Linux
+  }
+}
+
+// =====================================================================
+// Web App — Linux, .NET on DOTNETCORE|x, VNet-integrated, MI-authenticated
+// =====================================================================
 resource webApp 'Microsoft.Web/sites@2024-04-01' = {
   name: webAppName
   location: location
-  kind: 'app'
+  kind: 'app,linux'
+  tags: tags
   identity: {
-    // System-assigned managed identity — the explicit, pinned identity used for
-    // Azure SQL auth (Authentication=Active Directory Managed Identity) instead of
-    // the slow DefaultAzureCredential chain. Grant it access with:
-    //   CREATE USER [<webAppName>] FROM EXTERNAL PROVIDER;
-    //   ALTER ROLE db_datareader ADD MEMBER [<webAppName>];
-    //   ALTER ROLE db_datawriter ADD MEMBER [<webAppName>];
-    //   ALTER ROLE db_ddladmin  ADD MEMBER [<webAppName>]; -- needed for migrations
     type: 'SystemAssigned'
   }
   properties: {
     serverFarmId: appServicePlan.id
-    httpsOnly: true
+    // httpsOnly is deliberately FALSE — the owner has chosen to keep
+    // chores.zazzo.com reachable over plain HTTP. This matches live reality
+    // (the site is httpsOnly:false); the committed template previously said
+    // `true`, which never matched the environment. This is an explicit owner
+    // decision, NOT drift — do not "fix" it to true.
+    httpsOnly: false
+    virtualNetworkSubnetId: appSubnet.id // regional VNet integration
     siteConfig: {
-      netFrameworkVersion: 'v10.0'
-      ftpsState: 'Disabled'
+      linuxFxVersion: dotnetVersion // single source of truth for runtime
+      alwaysOn: true // matches live reality; B1 Basic supports Always On (issue #12)
+      http20Enabled: true // intentional enhancement (issue #4 config hardening); enables HTTP/2
       minTlsVersion: '1.2'
-      http20Enabled: true
-      // App Service Health Check pings this path and recycles unhealthy instances.
-      // NOTE: the Health Check feature requires Basic (B1) tier or higher — it is a
-      // no-op on the Free F1 tier, but the property is harmless to set.
-      healthCheckPath: '/healthz'
-      // alwaysOn is NOT set: the Free F1 tier does not support Always On, so the app
-      // still unloads after ~20 min idle. Mitigations for the cold start are in the
-      // app itself (background migration + retry + health probes). Move to B1+ and set
-      // alwaysOn: true to eliminate idle unloads entirely.
+      ftpsState: 'FtpsOnly'
+      healthCheckPath: healthCheckPath // DB-free endpoint
+      vnetRouteAllEnabled: true
       appSettings: [
         {
           name: 'ASPNETCORE_ENVIRONMENT'
-          value: 'Production'
+          value: aspNetCoreEnvironment
         }
         {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
@@ -94,136 +191,122 @@ resource webApp 'Microsoft.Web/sites@2024-04-01' = {
       ]
       connectionStrings: [
         {
+          // Key matches Program.cs GetConnectionString("AzureSqlConnection").
+          // Passwordless: uses the App Service system-assigned identity.
           name: 'AzureSqlConnection'
-          connectionString: 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${sqlDatabaseName};Persist Security Info=False;User ID=${sqlAdminUsername};Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+          connectionString: sqlConnectionString
           type: 'SQLAzure'
         }
       ]
     }
   }
-  tags: {
-    environment: environmentName
-    application: 'ChoresWizard2000'
-  }
 }
 
-// =====================================================
-// Azure SQL Server
-// =====================================================
-resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
+// =====================================================================
+// DATA TIER (gated) — SQL server, serverless DB, private endpoint + DNS
+// =====================================================================
+resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = if (deployDataTier) {
   name: sqlServerName
   location: location
+  tags: tags
   properties: {
-    administratorLogin: sqlAdminUsername
-    administratorLoginPassword: sqlAdminPassword
+    administratorLogin: sqlAdministratorLogin
+    administratorLoginPassword: sqlAdministratorLoginPassword
     version: '12.0'
     minimalTlsVersion: '1.2'
-    publicNetworkAccess: 'Enabled'
-  }
-  tags: {
-    environment: environmentName
-    application: 'ChoresWizard2000'
+    // Resolve the contradictory posture (issue #12): private endpoint only.
+    publicNetworkAccess: sqlPublicNetworkAccess
   }
 }
 
-// =====================================================
-// SQL Server Firewall Rule - Allow Azure Services
-// =====================================================
-resource sqlFirewallRule 'Microsoft.Sql/servers/firewallRules@2023-08-01-preview' = {
-  parent: sqlServer
-  name: 'AllowAllWindowsAzureIps'
-  properties: {
-    startIpAddress: '0.0.0.0'
-    endIpAddress: '0.0.0.0'
-  }
-}
-
-// =====================================================
-// Azure SQL Database (Basic Tier - ~$5/month)
-// =====================================================
-resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
+resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-08-01-preview' = if (deployDataTier) {
   parent: sqlServer
   name: sqlDatabaseName
   location: location
+  tags: tags
   sku: {
-    name: 'Basic'
-    tier: 'Basic'
-    capacity: 5
+    name: 'GP_S_Gen5'
+    tier: 'GeneralPurpose'
+    family: 'Gen5'
+    capacity: 1 // max vCores; serverless scales down to minCapacity
   }
   properties: {
     collation: 'SQL_Latin1_General_CP1_CI_AS'
-    maxSizeBytes: 2147483648 // 2 GB
-    catalogCollation: 'SQL_Latin1_General_CP1_CI_AS'
+    maxSizeBytes: 34359738368 // 32 GB
+    autoPauseDelay: 60 // minutes
+    minCapacity: json('0.5')
     zoneRedundant: false
     readScale: 'Disabled'
-    requestedBackupStorageRedundancy: 'Local'
-  }
-  tags: {
-    environment: environmentName
-    application: 'ChoresWizard2000'
+    requestedBackupStorageRedundancy: 'Geo'
   }
 }
 
-// =====================================================
-// Log Analytics Workspace (backs Application Insights)
-// =====================================================
-resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
-  name: '${appName}-logs-${resourceToken}'
+// SQL private endpoint in the non-delegated subnet.
+resource privateEndpointSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' existing = {
+  name: '${vnetName}/${privateEndpointSubnetName}'
+}
+
+resource sqlPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = if (deployDataTier) {
+  name: 'zazzo-choresDbEndpoint'
   location: location
+  tags: tags
   properties: {
-    sku: {
-      name: 'PerGB2018'
+    subnet: {
+      id: privateEndpointSubnet.id
     }
-    retentionInDays: 30
-  }
-  tags: {
-    environment: environmentName
-    application: 'ChoresWizard2000'
+    privateLinkServiceConnections: [
+      {
+        name: 'zazzo-choresDbEndpoint'
+        properties: {
+          privateLinkServiceId: sqlServer.id
+          groupIds: ['sqlServer']
+        }
+      }
+    ]
   }
 }
 
-// =====================================================
-// Application Insights (workspace-based)
-// Consumed by the app via APPLICATIONINSIGHTS_CONNECTION_STRING.
-// =====================================================
-resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-  name: '${appName}-ai-${resourceToken}'
-  location: location
-  kind: 'web'
+resource sqlPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (deployDataTier) {
+  name: privateDnsZoneName
+  location: 'global'
+  tags: tags
+}
+
+resource sqlPrivateDnsLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (deployDataTier) {
+  parent: sqlPrivateDnsZone
+  name: '${vnetName}-link'
+  location: 'global'
   properties: {
-    Application_Type: 'web'
-    WorkspaceResourceId: logAnalytics.id
-    IngestionMode: 'LogAnalytics'
-  }
-  tags: {
-    environment: environmentName
-    application: 'ChoresWizard2000'
+    registrationEnabled: false
+    virtualNetwork: {
+      id: resourceId('Microsoft.Network/virtualNetworks', vnetName)
+    }
   }
 }
 
-// =====================================================
+resource sqlPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = if (deployDataTier) {
+  parent: sqlPrivateEndpoint
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'sql'
+        properties: {
+          privateDnsZoneId: sqlPrivateDnsZone.id
+        }
+      }
+    ]
+  }
+}
+
+// =====================================================================
 // Outputs
-// =====================================================
-@description('The URL of the deployed web app')
-output webAppUrl string = 'https://${webApp.properties.defaultHostName}'
-
-@description('The name of the web app (for deployment)')
+// =====================================================================
 output webAppName string = webApp.name
-
-@description('The name of the SQL Server')
-output sqlServerName string = sqlServer.name
-
-@description('The fully qualified domain name of the SQL Server')
-output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName
-
-@description('The name of the SQL Database')
-output sqlDatabaseName string = sqlDatabase.name
-
-@description('The name of the resource group')
-output resourceGroupName string = resourceGroup().name
-
-@description('The principal ID of the web app system-assigned managed identity (grant this DB access)')
+output webAppUrl string = 'https://${webApp.properties.defaultHostName}'
 output webAppPrincipalId string = webApp.identity.principalId
-
-@description('The name of the Application Insights resource')
 output appInsightsName string = appInsights.name
+output appInsightsConnectionString string = appInsights.properties.ConnectionString
+output sqlServerFqdn string = sqlServerFqdn
+output sqlDatabaseName string = sqlDatabaseName
+output resourceGroupName string = resourceGroup().name

@@ -6,7 +6,7 @@
 <section class="results-container">
     <header class="hero">
         <h1 class="result-title">✨ The Sorting is Complete! ✨</h1>
-        <p>The Sorting Hat has spoken for @DateTime.Now.ToString("MMMM yyyy")</p>
+        <p>The Sorting Hat has spoken for @ViewData["CurrentMonthLabel"]</p>
     </header>
 
     @if (Model != null && Model.Any())

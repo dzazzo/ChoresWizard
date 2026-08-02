@@ -1,65 +1,136 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
+# Consolidated CI/CD for The Sorting Hat (Zazzo.ChoresWizard2000)
+#
+# Single pipeline (issue #4):
+#   - build + test on every pull request and every push to main
+#   - deploy to the zazzo-chores App Service ONLY on push to main, via OIDC
+#
+# Authentication is OIDC federated credentials only. There is no publish
+# profile and no client secret anywhere (the repo is public).
+#
+# Runtime is single-source-of-truth (issue #12): the "Pin runtime" step
+# derives linuxFxVersion from <TargetFramework> in the .csproj and applies
+# it to the site BEFORE deploying the package, so a TargetFramework bump can
+# never again land code onto a mismatched runtime.
 
-name: Build and deploy ASP.Net Core app to Azure Web App - zazzo-chores
+name: CI/CD - zazzo-chores
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
+# Never let two deploys (or a deploy and a re-run) touch the App Service at
+# the same time. This is what the two old racing workflows lacked.
+concurrency:
+  group: cicd-zazzo-chores-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  SOLUTION: Zazzo.ChoresWizard2000.sln
+  PROJECT: Zazzo.ChoresWizard2000.csproj
+  PUBLISH_DIR: ./publish
+  AZURE_WEBAPP_NAME: zazzo-chores
+  AZURE_RESOURCE_GROUP: chores-app
+
 jobs:
-  build:
+  # ---------------------------------------------------------------------------
+  # build + test — runs on PRs and on main. No Azure access, no secrets.
+  # ---------------------------------------------------------------------------
+  build-test:
+    name: Build & Test
     runs-on: ubuntu-latest
     permissions:
-      contents: read #This is required for actions/checkout
-
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up .NET Core
+      - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.x'
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Build with dotnet
-        run: dotnet build --configuration Release
+      - name: Restore
+        run: dotnet restore ${{ env.SOLUTION }}
 
-      - name: dotnet publish
-        run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
+      - name: Build
+        run: dotnet build ${{ env.SOLUTION }} --configuration Release --no-restore
 
-      - name: Upload artifact for deployment job
+      # Runs the xUnit test project (Zazzo.ChoresWizard2000.Tests) added in #11.
+      - name: Test
+        run: dotnet test ${{ env.SOLUTION }} --configuration Release --no-build --verbosity normal
+
+      # Only publish the deployable package when we're actually going to deploy.
+      - name: Publish
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: dotnet publish ${{ env.PROJECT }} --configuration Release --output ${{ env.PUBLISH_DIR }}
+
+      - name: Upload package
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
-          name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          name: app-package
+          path: ${{ env.PUBLISH_DIR }}
+          if-no-files-found: error
 
+  # ---------------------------------------------------------------------------
+  # deploy — main only, gated behind the "production" GitHub Environment.
+  # ---------------------------------------------------------------------------
   deploy:
+    name: Deploy to Azure
     runs-on: ubuntu-latest
-    needs: build
+    needs: build-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://chores.zazzo.com
     permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
-
+      id-token: write   # required for the OIDC token
+      contents: read
     steps:
-      - name: Download artifact from build job
+      - name: Checkout (for the .csproj TargetFramework)
+        uses: actions/checkout@v4
+
+      - name: Download package
         uses: actions/download-artifact@v4
         with:
-          name: .net-app
-      
-      - name: Login to Azure
+          name: app-package
+          path: ${{ env.PUBLISH_DIR }}
+
+      - name: Azure login (OIDC)
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_A2E2379523554170B09742BC752892DE }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_06E946B844654B3894CDC85775F62A81 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_C42B04EB0A6749CAA3E66C16DC0E92EA }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # SINGLE SOURCE OF TRUTH for the runtime. Read <TargetFramework> from the
+      # csproj (e.g. net10.0) and pin the Linux runtime to DOTNETCORE|10.0
+      # before deploying. If the framework is bumped, this reconciles the
+      # runtime in the same commit — the outage in issue #12 cannot recur.
+      - name: Pin App Service runtime to match TargetFramework
+        run: |
+          set -euo pipefail
+          tfm=$(grep -oP '(?<=<TargetFramework>)net[0-9]+\.[0-9]+' "$PROJECT" | head -n1)
+          if [ -z "${tfm:-}" ]; then
+            echo "::error::Could not read <TargetFramework> from $PROJECT"; exit 1
+          fi
+          ver="${tfm#net}"
+          runtime="DOTNETCORE|${ver}"
+          echo "TargetFramework=$tfm -> linuxFxVersion=$runtime"
+          az webapp config set \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$AZURE_WEBAPP_NAME" \
+            --linux-fx-version "$runtime"
 
       - name: Deploy to Azure Web App
-        id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'zazzo-chores'
-          slot-name: 'Production'
-          package: .
-          
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: ${{ env.PUBLISH_DIR }}
+
+      - name: Azure logout
+        if: always()
+        run: az logout || true

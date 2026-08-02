@@ -28,7 +28,7 @@
 
     <wa-callout variant="warning" class="ceremony-callout">
         <wa-icon slot="icon" name="triangle-exclamation"></wa-icon>
-        <strong>Note:</strong> This will assign chores for @DateTime.Now.ToString("MMMM yyyy").
+        <strong>Note:</strong> This will assign chores for @ViewData["CurrentMonthLabel"].
         Previous assignments for this month will remain, but new sorting will add fresh assignments.
     </wa-callout>
 

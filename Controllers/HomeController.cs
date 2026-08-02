@@ -20,6 +20,7 @@ public class HomeController : Controller
     {
         try
         {
+            ViewData["CurrentMonthLabel"] = _sortingHatService.GetCurrentMonth().ToLabel();
             var assignments = await _sortingHatService.GetCurrentMonthAssignmentsAsync();
             return View(assignments);
         }

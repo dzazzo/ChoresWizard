@@ -1,4 +1,4 @@
-﻿@model List<Zazzo.ChoresWizard2000.Models.ChoreAssignment>
+@model List<Zazzo.ChoresWizard2000.Models.ChoreAssignment>
 @{
     ViewData["Title"] = "Assignment History";
 }
@@ -13,7 +13,7 @@
 @if (Model != null && Model.Any())
 {
     <wa-card class="feature-card">
-        <h2 slot="header">Current Month - @DateTime.Now.ToString("MMMM yyyy")</h2>
+        <h2 slot="header">Current Month - @ViewData["CurrentMonthLabel"]</h2>
         <div class="member-stack">
             @foreach (var group in Model.GroupBy(a => a.FamilyMember))
             {

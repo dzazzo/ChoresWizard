@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
+using Zazzo.ChoresWizard2000.Configuration;
 using Zazzo.ChoresWizard2000.Data;
 using Zazzo.ChoresWizard2000.HealthChecks;
 using Zazzo.ChoresWizard2000.Services;
@@ -102,10 +103,54 @@ builder.Services.AddHealthChecks()
         failureStatus: HealthStatus.Unhealthy,
         tags: new[] { "ready" });
 
+// Time abstraction & household time zone. All "what month is it right now" decisions
+// are made in this zone rather than UTC (issue #3), so a Pacific household on the
+// evening of the 31st sees the correct month. TimeProvider is the built-in testable
+// clock; production uses the system clock. .NET 10 resolves IANA ids cross-platform
+// (developed on macOS, runs on Linux App Service).
+builder.Services.Configure<HouseholdOptions>(
+    builder.Configuration.GetSection(HouseholdOptions.SectionName));
+
+builder.Services.AddSingleton(TimeProvider.System);
+
+var configuredTimeZoneId =
+    builder.Configuration.GetSection(HouseholdOptions.SectionName)[nameof(HouseholdOptions.TimeZone)]
+    ?? HouseholdOptions.DefaultTimeZone;
+
+var timeZoneFellBack = false;
+TimeZoneInfo householdTimeZone;
+try
+{
+    householdTimeZone = TimeZoneInfo.FindSystemTimeZoneById(configuredTimeZoneId);
+}
+catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
+{
+    // Never let a bad/unknown id take the app down: fall back to the household default
+    // and surface it clearly in the log after the host is built.
+    householdTimeZone = TimeZoneInfo.FindSystemTimeZoneById(HouseholdOptions.DefaultTimeZone);
+    timeZoneFellBack = true;
+}
+
+builder.Services.AddSingleton(householdTimeZone);
+
 // Register services
 builder.Services.AddScoped<SortingHatService>();
 
 var app = builder.Build();
+
+// Report the resolved household time zone so month-boundary behavior is never
+// ambiguous in the log stream (issue #3).
+if (timeZoneFellBack)
+{
+    app.Logger.LogWarning(
+        "Configured household time zone '{Configured}' could not be resolved; "
+        + "falling back to '{Fallback}'.",
+        configuredTimeZoneId, householdTimeZone.Id);
+}
+else
+{
+    app.Logger.LogInformation("Household time zone resolved: {TimeZone}.", householdTimeZone.Id);
+}
 
 // Make the live database configuration unambiguous in the App Service log stream,
 // without ever logging secrets. Also flags the two footguns from issue #2:

@@ -14,20 +14,23 @@ public class SortingHatController : Controller
 
     public async Task<IActionResult> Index()
     {
+        ViewData["CurrentMonthLabel"] = _sortingHatService.GetCurrentMonth().ToLabel();
         var assignments = await _sortingHatService.GetCurrentMonthAssignmentsAsync();
         return View(assignments);
     }
 
     public IActionResult Ceremony()
     {
+        ViewData["CurrentMonthLabel"] = _sortingHatService.GetCurrentMonth().ToLabel();
         return View();
     }
 
     [HttpPost]
     public async Task<IActionResult> Sort()
     {
-        var now = DateTime.UtcNow;
-        
+        // Determine the month from the household-local clock, not UTC (issue #3).
+        var period = _sortingHatService.GetCurrentMonth();
+
         // Check if assignments already exist for this month
         var existingAssignments = await _sortingHatService.GetCurrentMonthAssignmentsAsync();
         if (existingAssignments.Any())
@@ -35,13 +38,14 @@ public class SortingHatController : Controller
             TempData["Error"] = "Assignments already exist for this month. Clear them first to re-sort.";
             return RedirectToAction(nameof(Results));
         }
-        
-        await _sortingHatService.DistributeChoresAsync(now.Year, now.Month);
+
+        await _sortingHatService.DistributeChoresAsync(period.Year, period.Month);
         return RedirectToAction(nameof(Results));
     }
 
     public async Task<IActionResult> Results()
     {
+        ViewData["CurrentMonthLabel"] = _sortingHatService.GetCurrentMonth().ToLabel();
         var assignments = await _sortingHatService.GetCurrentMonthAssignmentsAsync();
         return View(assignments);
     }
@@ -49,8 +53,8 @@ public class SortingHatController : Controller
     [HttpPost]
     public async Task<IActionResult> ClearCurrentMonth()
     {
-        var now = DateTime.UtcNow;
-        await _sortingHatService.ClearAssignmentsAsync(now.Year, now.Month);
+        var period = _sortingHatService.GetCurrentMonth();
+        await _sortingHatService.ClearAssignmentsAsync(period.Year, period.Month);
         return RedirectToAction(nameof(Index));
     }
 }

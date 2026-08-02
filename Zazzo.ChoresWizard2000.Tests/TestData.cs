@@ -51,12 +51,21 @@ public sealed class TestDbContext : ChoresDbContext
 /// </summary>
 public static class TestData
 {
+    /// <summary>The household time zone under test (Pacific: UTC-8 / UTC-7 in DST).</summary>
+    public static readonly TimeZoneInfo Pacific =
+        TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles");
+
     /// <summary>
     /// Builds a <see cref="SortingHatService"/> against the supplied context with a
-    /// seeded <see cref="Random"/>, guaranteeing deterministic distribution.
+    /// seeded <see cref="Random"/>, guaranteeing deterministic distribution. Optionally
+    /// pin the clock and time zone so month determination is fully controlled.
     /// </summary>
-    public static SortingHatService CreateService(ChoresDbContext context, int seed = 12345)
-        => new(context, NullLogger<SortingHatService>.Instance, new Random(seed));
+    public static SortingHatService CreateService(
+        ChoresDbContext context,
+        int seed = 12345,
+        TimeProvider? timeProvider = null,
+        TimeZoneInfo? timeZone = null)
+        => new(context, NullLogger<SortingHatService>.Instance, new Random(seed), timeProvider, timeZone);
 
     public static FamilyMember AddMember(
         ChoresDbContext ctx,
