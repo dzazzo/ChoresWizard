@@ -50,7 +50,7 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2024-04-01' = {
 }
 
 // =====================================================
-// Web App (ASP.NET Core 9.0)
+// Web App (ASP.NET Core 10.0)
 // =====================================================
 resource webApp 'Microsoft.Web/sites@2024-04-01' = {
   name: webAppName
@@ -60,7 +60,7 @@ resource webApp 'Microsoft.Web/sites@2024-04-01' = {
     serverFarmId: appServicePlan.id
     httpsOnly: true
     siteConfig: {
-      netFrameworkVersion: 'v9.0'
+      netFrameworkVersion: 'v10.0'
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       http20Enabled: true

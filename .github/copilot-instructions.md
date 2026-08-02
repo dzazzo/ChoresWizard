@@ -19,7 +19,7 @@
 
 # The Sorting Hat - Project Summary
 
-This is an ASP.NET Core 9.0 MVC web application for the Zazzo family to manage household chores with a Harry Potter theme.
+This is an ASP.NET Core 10.0 MVC web application for the Zazzo family to manage household chores with a Harry Potter theme.
 
 ## Features Implemented
 
@@ -31,7 +31,7 @@ This is an ASP.NET Core 9.0 MVC web application for the Zazzo family to manage h
 
 ## Technical Stack
 
-- ASP.NET Core 9.0 MVC
+- ASP.NET Core 10.0 MVC
 - Entity Framework Core with SQLite (dev) and Azure SQL (prod)
 - Bootstrap 5 with custom magical styling
 - SortingHatService for chore distribution logic
