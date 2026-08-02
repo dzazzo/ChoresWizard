@@ -13,7 +13,7 @@
 
 - [x] Create and Run Task
 
-- [ ] Launch the Project
+- [x] Launch the Project
 
 - [x] Ensure Documentation is Complete
 
@@ -33,12 +33,13 @@ This is an ASP.NET Core 10.0 MVC web application for the Zazzo family to manage 
 
 - ASP.NET Core 10.0 MVC
 - Entity Framework Core with SQLite (dev) and Azure SQL (prod)
-- Bootstrap 5 with custom magical styling
+- Web Awesome 3.11 with a hosted Pro kit and custom magical styling
 - SortingHatService for chore distribution logic
 
 ## Running the Project
 
 ```bash
+export WebAwesome__KitCode="<your-kit-code>"
 dotnet run
 ```
 
