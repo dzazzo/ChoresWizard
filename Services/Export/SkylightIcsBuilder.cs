@@ -127,16 +127,16 @@ public static class SkylightIcsBuilder
     /// Maps a cadence to its first occurrence date within <paramref name="period"/> and
     /// the recurrence rule (or <c>null</c> for a single occurrence).
     ///
-    /// Fully specified by the owner and pinned by tests:
-    ///   Daily  -> FREQ=DAILY;UNTIL=&lt;last day&gt;, starting the 1st.
-    ///   Weekly -> FREQ=WEEKLY;BYDAY=SA;UNTIL=&lt;last day&gt;, starting the first Saturday.
+    /// All four cadences are owner-confirmed and pinned by tests:
+    ///   Daily    -> FREQ=DAILY;UNTIL=&lt;last day&gt;, starting the 1st.
+    ///   Weekly   -> FREQ=WEEKLY;BYDAY=SA;UNTIL=&lt;last day&gt;, starting the first Saturday.
+    ///   BiWeekly -> FREQ=WEEKLY;INTERVAL=2;BYDAY=SA, every other Saturday from the first.
+    ///   Monthly  -> a single all-day event on the <b>first Saturday</b>, no recurrence.
     ///
-    /// PROVISIONAL, pending the owner's answer (do NOT treat as final):
-    ///   BiWeekly -> FREQ=WEEKLY;INTERVAL=2;BYDAY=SA (every other Saturday from the first).
-    ///   Monthly  -> a single all-day event on the 1st (no recurrence).
-    /// The owner only described daily and weekly-on-Saturday; the biweekly/monthly
-    /// shapes are the least-surprising placeholders so those chores are not silently
-    /// dropped, and are flagged in the PR with a question back to the owner.
+    /// Every non-daily cadence lands on a Saturday by design: this household does its
+    /// chores on the weekend, so a monthly chore anchored to the 1st would have fallen
+    /// on an arbitrary weekday. Monthly therefore shares Weekly's start date and simply
+    /// omits the recurrence rule.
     /// </summary>
     private static (DateOnly FirstOccurrence, RecurrencePattern? Rule) BuildRecurrence(
         ChoreFrequency frequency,
@@ -159,7 +159,7 @@ public static class SkylightIcsBuilder
                     ByDay = new List<WeekDay> { new(DayOfWeek.Saturday) },
                 }),
 
-            // PROVISIONAL — see method summary.
+            // Every other Saturday, starting the first Saturday of the month.
             ChoreFrequency.BiWeekly => (
                 firstSaturday,
                 new RecurrencePattern(FrequencyType.Weekly, 2)
@@ -168,8 +168,9 @@ public static class SkylightIcsBuilder
                     ByDay = new List<WeekDay> { new(DayOfWeek.Saturday) },
                 }),
 
-            // PROVISIONAL — single occurrence on the 1st, no RRULE.
-            ChoreFrequency.Monthly => (period.FirstDay, null),
+            // Single occurrence on the first Saturday, no RRULE. Deliberately NOT the
+            // 1st, which can land on any weekday.
+            ChoreFrequency.Monthly => (firstSaturday, null),
 
             _ => (period.FirstDay, null),
         };
