@@ -9,8 +9,16 @@ using Zazzo.ChoresWizard2000.Configuration;
 using Zazzo.ChoresWizard2000.Data;
 using Zazzo.ChoresWizard2000.HealthChecks;
 using Zazzo.ChoresWizard2000.Services;
+using Zazzo.ChoresWizard2000.Services.Export;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// QuestPDF Community licence acknowledgement (issue #9). Free for organisations
+// under $1M USD annual revenue; this household app qualifies. This is a real licence
+// term, not decoration — QuestPDF throws at first document generation without it.
+// The pinned package is 2026.7.2: never 'dotnet add package QuestPDF' unpinned, as
+// the typo version 2202.8.2 sorts as newest forever and is a four-year-old build.
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
 // Ensure logs reliably reach the App Service log stream (stdout).
 builder.Logging.AddSimpleConsole(options =>
@@ -146,6 +154,13 @@ builder.Services.Configure<AutoResortOptions>(
     builder.Configuration.GetSection(AutoResortOptions.SectionName));
 builder.Services.AddScoped<AutoResortRunner>();
 builder.Services.AddHostedService<AutoResortScheduler>();
+
+// Chore export (issue #9): ICS feed, PDF, CSV. Token that gates the anonymous feed
+// is bound from the "Export" section; it is empty in committed config and must be
+// set out of band (user-secrets / Export__FeedToken app setting).
+builder.Services.Configure<ExportOptions>(
+    builder.Configuration.GetSection(ExportOptions.SectionName));
+builder.Services.AddScoped<ChoreExportService>();
 
 var app = builder.Build();
 
