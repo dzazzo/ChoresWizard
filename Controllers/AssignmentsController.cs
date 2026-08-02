@@ -24,6 +24,7 @@ public class AssignmentsController : Controller
         // Household-local month, not UTC (issue #3).
         var period = MonthPeriod.Current(_timeProvider, _timeZone);
         ViewData["CurrentMonthLabel"] = period.ToLabel();
+        ViewData["ExportPeriod"] = period;
         var assignments = await _context.ChoreAssignments
             .Include(ca => ca.FamilyMember)
             .Include(ca => ca.Chore)
