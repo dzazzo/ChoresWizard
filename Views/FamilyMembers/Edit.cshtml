@@ -3,29 +3,24 @@
     ViewData["Title"] = "Edit Family Member";
 }
 
-<h2>Edit Family Member</h2>
+<header class="page-heading">
+    <div>
+        <h1>Edit Family Member</h1>
+        <p>Update @Model.Name's role in the Sorting Ceremony.</p>
+    </div>
+</header>
 
-<form asp-action="Edit" method="post">
-    @Html.AntiForgeryToken()
-    <input asp-for="Id" type="hidden" />
-    <div class="form-group">
-        <label asp-for="Name"></label>
-        <input asp-for="Name" class="form-control" required />
-    </div>
-    <div class="form-check">
-        <input asp-for="IsParent" class="form-check-input" />
-        <label asp-for="IsParent" class="form-check-label">Is Parent</label>
-    </div>
-    <div class="form-check">
-        <input asp-for="IsTeen" class="form-check-input" />
-        <label asp-for="IsTeen" class="form-check-label">Is Teen</label>
-    </div>
-    <div class="form-check">
-        <input asp-for="IsActive" class="form-check-input" />
-        <label asp-for="IsActive" class="form-check-label">Is Active</label>
-    </div>
-    <div class="form-group mt-3">
-        <button type="submit" class="btn btn-primary">Save</button>
-        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
-    </div>
-</form>
+<wa-card class="form-card">
+    <form asp-action="Edit" method="post" class="wa-form">
+        @Html.AntiForgeryToken()
+        <input asp-for="Id" type="hidden" />
+        <partial name="_Form" model="@Model" />
+        <div class="form-actions">
+            <wa-button type="submit" variant="brand" appearance="filled">
+                <wa-icon slot="start" name="floppy-disk"></wa-icon>
+                Save
+            </wa-button>
+            <wa-button href="@Url.Action("Index")" variant="neutral" appearance="outlined">Cancel</wa-button>
+        </div>
+    </form>
+</wa-card>

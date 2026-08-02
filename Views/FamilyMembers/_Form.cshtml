@@ -1,0 +1,39 @@
+@model Zazzo.ChoresWizard2000.Models.FamilyMember
+
+<div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+
+<wa-input name="@Html.NameFor(model => model.Name)"
+          id="@Html.IdFor(model => model.Name)"
+          value="@Model?.Name"
+          label="@Html.DisplayNameFor(model => model.Name)"
+          autocomplete="name"
+          required></wa-input>
+<span asp-validation-for="Name" class="field-validation-error"></span>
+
+<fieldset class="checkbox-group">
+    <legend>Family role and status</legend>
+
+    <wa-checkbox name="@Html.NameFor(model => model.IsParent)"
+                 id="@Html.IdFor(model => model.IsParent)"
+                 value="true"
+                 checked="@((Model?.IsParent ?? false) ? "checked" : null)">
+        Is Parent
+    </wa-checkbox>
+    <input type="hidden" name="@Html.NameFor(model => model.IsParent)" value="false" />
+
+    <wa-checkbox name="@Html.NameFor(model => model.IsTeen)"
+                 id="@Html.IdFor(model => model.IsTeen)"
+                 value="true"
+                 checked="@((Model?.IsTeen ?? false) ? "checked" : null)">
+        Is Teen
+    </wa-checkbox>
+    <input type="hidden" name="@Html.NameFor(model => model.IsTeen)" value="false" />
+
+    <wa-checkbox name="@Html.NameFor(model => model.IsActive)"
+                 id="@Html.IdFor(model => model.IsActive)"
+                 value="true"
+                 checked="@((Model?.IsActive ?? true) ? "checked" : null)">
+        Is Active
+    </wa-checkbox>
+    <input type="hidden" name="@Html.NameFor(model => model.IsActive)" value="false" />
+</fieldset>

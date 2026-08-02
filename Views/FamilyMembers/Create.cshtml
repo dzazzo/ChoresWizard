@@ -3,28 +3,23 @@
     ViewData["Title"] = "Create Family Member";
 }
 
-<h2>Add Family Member</h2>
+<header class="page-heading">
+    <div>
+        <h1>Add Family Member</h1>
+        <p>Invite someone new to the household Sorting Ceremony.</p>
+    </div>
+</header>
 
-<form asp-action="Create" method="post">
-    @Html.AntiForgeryToken()
-    <div class="form-group">
-        <label asp-for="Name"></label>
-        <input asp-for="Name" class="form-control" required />
-    </div>
-    <div class="form-check">
-        <input asp-for="IsParent" class="form-check-input" />
-        <label asp-for="IsParent" class="form-check-label">Is Parent</label>
-    </div>
-    <div class="form-check">
-        <input asp-for="IsTeen" class="form-check-input" />
-        <label asp-for="IsTeen" class="form-check-label">Is Teen</label>
-    </div>
-    <div class="form-check">
-        <input asp-for="IsActive" class="form-check-input" checked />
-        <label asp-for="IsActive" class="form-check-label">Is Active</label>
-    </div>
-    <div class="form-group mt-3">
-        <button type="submit" class="btn btn-primary">Create</button>
-        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
-    </div>
-</form>
+<wa-card class="form-card">
+    <form asp-action="Create" method="post" class="wa-form">
+        @Html.AntiForgeryToken()
+        <partial name="_Form" model="@Model" />
+        <div class="form-actions">
+            <wa-button type="submit" variant="brand" appearance="filled">
+                <wa-icon slot="start" name="user-plus"></wa-icon>
+                Create
+            </wa-button>
+            <wa-button href="@Url.Action("Index")" variant="neutral" appearance="outlined">Cancel</wa-button>
+        </div>
+    </form>
+</wa-card>

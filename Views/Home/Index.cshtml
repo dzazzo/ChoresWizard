@@ -30,9 +30,10 @@
         <form asp-controller="SortingHat" asp-action="ClearCurrentMonth" method="post"
               onsubmit="return confirm('Are you sure you want to clear all assignments for this month? This cannot be undone.');">
             @Html.AntiForgeryToken()
-            <button type="submit" class="native-button native-button-warning">
+            <wa-button type="submit" variant="warning" appearance="filled" size="large">
+                <wa-icon slot="start" name="trash"></wa-icon>
                 🗑️ Clear This Month's Assignments
-            </button>
+            </wa-button>
         </form>
     }
 </div>

@@ -9,10 +9,6 @@ html {
   }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
 html,
 body {
   margin: 0;
@@ -105,16 +101,6 @@ wa-page[view='mobile'] {
   padding: 0.75rem 1rem;
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
-}
-
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-  text-align: start;
-}
-
-/* Magical Theme Styles */
 .magical-brand {
   align-items: center;
   color: white;
@@ -124,35 +110,6 @@ wa-page[view='mobile'] {
   font-weight: bold;
   gap: var(--wa-space-s);
   text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-}
-
-.navbar-dark {
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%) !important;
-}
-
-.card {
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  transition: transform 0.3s;
-}
-
-.card:hover {
-  transform: translateY(-5px);
-}
-
-.table {
-  background: white;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-}
-
-.btn-primary:hover {
-  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
 }
 
 .hero {
@@ -352,31 +309,81 @@ wa-page[view='mobile'] {
   color: #667085;
 }
 
-.native-button {
-  appearance: none;
-  background: var(--wa-color-brand-60);
-  border: 1px solid transparent;
-  border-radius: var(--wa-border-radius-m);
-  color: white;
-  cursor: pointer;
-  font: inherit;
+.form-card {
+  display: block;
+  margin: 0 auto;
+  max-width: 48rem;
+}
+
+.wa-form {
+  display: grid;
+  gap: 1.15rem;
+}
+
+.form-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.checkbox-group {
+  border: 1px solid #d0d5dd;
+  border-radius: 0.6rem;
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 1rem;
+}
+
+.checkbox-group legend {
+  color: #475467;
   font-weight: 650;
-  min-height: 2.75rem;
-  padding: 0.6rem 1rem;
+  padding: 0 0.35rem;
 }
 
-.native-button-warning {
-  background: var(--wa-color-warning-60);
-  color: #2d1b00;
+.validation-summary,
+.field-validation-error {
+  color: var(--wa-color-danger-70);
 }
 
-.native-button-danger {
-  background: var(--wa-color-danger-60);
+.validation-summary:empty,
+.field-validation-error:empty {
+  display: none;
 }
 
-.native-button-small {
-  min-height: 2rem;
-  padding: 0.3rem 0.65rem;
+.validation-summary ul {
+  margin: 0;
+}
+
+wa-input:state(user-invalid),
+wa-textarea:state(user-invalid),
+wa-select:state(user-invalid),
+wa-checkbox:state(user-invalid) {
+  --wa-form-control-border-color: var(--wa-color-danger-60);
+}
+
+.danger-card::part(base) {
+  border-color: var(--wa-color-danger-50);
+}
+
+.danger-card::part(header) {
+  background: var(--wa-color-danger-10);
+  color: var(--wa-color-danger-80);
+}
+
+.description-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  margin: 1rem 0;
+}
+
+.description-list dt,
+.description-list dd {
+  border-bottom: 1px solid #eaecf0;
+  margin: 0;
+  padding: 0.75rem;
 }
 
 .ceremony-container,

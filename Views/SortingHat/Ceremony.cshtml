@@ -21,9 +21,9 @@
 
     <form asp-controller="SortingHat" asp-action="Sort" method="post" class="ceremony-form">
         @Html.AntiForgeryToken()
-        <button type="submit" class="native-button magical-sort-button">
+        <wa-button type="submit" variant="warning" appearance="filled" size="large" pill class="magical-sort-button">
             ✨ Begin the Sorting ✨
-        </button>
+        </wa-button>
     </form>
 
     <wa-callout variant="warning" class="ceremony-callout">
