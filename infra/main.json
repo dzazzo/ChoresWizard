@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "6947169658648833592"
+      "templateHash": "13812533521620456719"
     }
   },
   "parameters": {
@@ -78,6 +78,9 @@
       "name": "[variables('webAppName')]",
       "location": "[parameters('location')]",
       "kind": "app",
+      "identity": {
+        "type": "SystemAssigned"
+      },
       "properties": {
         "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
         "httpsOnly": true,
@@ -86,10 +89,15 @@
           "ftpsState": "Disabled",
           "minTlsVersion": "1.2",
           "http20Enabled": true,
+          "healthCheckPath": "/healthz",
           "appSettings": [
             {
               "name": "ASPNETCORE_ENVIRONMENT",
               "value": "Production"
+            },
+            {
+              "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+              "value": "[reference(resourceId('Microsoft.Insights/components', format('{0}-ai-{1}', parameters('appName'), variables('resourceToken'))), '2020-02-02').ConnectionString]"
             }
           ],
           "connectionStrings": [
@@ -106,6 +114,7 @@
         "application": "ChoresWizard2000"
       },
       "dependsOn": [
+        "[resourceId('Microsoft.Insights/components', format('{0}-ai-{1}', parameters('appName'), variables('resourceToken')))]",
         "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
         "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
       ]
@@ -164,6 +173,41 @@
       "dependsOn": [
         "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
       ]
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2023-09-01",
+      "name": "[format('{0}-logs-{1}', parameters('appName'), variables('resourceToken'))]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "sku": {
+          "name": "PerGB2018"
+        },
+        "retentionInDays": 30
+      },
+      "tags": {
+        "environment": "[parameters('environmentName')]",
+        "application": "ChoresWizard2000"
+      }
+    },
+    {
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2020-02-02",
+      "name": "[format('{0}-ai-{1}', parameters('appName'), variables('resourceToken'))]",
+      "location": "[parameters('location')]",
+      "kind": "web",
+      "properties": {
+        "Application_Type": "web",
+        "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs-{1}', parameters('appName'), variables('resourceToken')))]",
+        "IngestionMode": "LogAnalytics"
+      },
+      "tags": {
+        "environment": "[parameters('environmentName')]",
+        "application": "ChoresWizard2000"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs-{1}', parameters('appName'), variables('resourceToken')))]"
+      ]
     }
   ],
   "outputs": {
@@ -208,6 +252,20 @@
         "description": "The name of the resource group"
       },
       "value": "[resourceGroup().name]"
+    },
+    "webAppPrincipalId": {
+      "type": "string",
+      "metadata": {
+        "description": "The principal ID of the web app system-assigned managed identity (grant this DB access)"
+      },
+      "value": "[reference(resourceId('Microsoft.Web/sites', variables('webAppName')), '2024-04-01', 'full').identity.principalId]"
+    },
+    "appInsightsName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Application Insights resource"
+      },
+      "value": "[format('{0}-ai-{1}', parameters('appName'), variables('resourceToken'))]"
     }
   }
 }

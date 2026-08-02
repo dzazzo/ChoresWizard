@@ -56,6 +56,16 @@ resource webApp 'Microsoft.Web/sites@2024-04-01' = {
   name: webAppName
   location: location
   kind: 'app'
+  identity: {
+    // System-assigned managed identity — the explicit, pinned identity used for
+    // Azure SQL auth (Authentication=Active Directory Managed Identity) instead of
+    // the slow DefaultAzureCredential chain. Grant it access with:
+    //   CREATE USER [<webAppName>] FROM EXTERNAL PROVIDER;
+    //   ALTER ROLE db_datareader ADD MEMBER [<webAppName>];
+    //   ALTER ROLE db_datawriter ADD MEMBER [<webAppName>];
+    //   ALTER ROLE db_ddladmin  ADD MEMBER [<webAppName>]; -- needed for migrations
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: appServicePlan.id
     httpsOnly: true
@@ -64,10 +74,22 @@ resource webApp 'Microsoft.Web/sites@2024-04-01' = {
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       http20Enabled: true
+      // App Service Health Check pings this path and recycles unhealthy instances.
+      // NOTE: the Health Check feature requires Basic (B1) tier or higher — it is a
+      // no-op on the Free F1 tier, but the property is harmless to set.
+      healthCheckPath: '/healthz'
+      // alwaysOn is NOT set: the Free F1 tier does not support Always On, so the app
+      // still unloads after ~20 min idle. Mitigations for the cold start are in the
+      // app itself (background migration + retry + health probes). Move to B1+ and set
+      // alwaysOn: true to eliminate idle unloads entirely.
       appSettings: [
         {
           name: 'ASPNETCORE_ENVIRONMENT'
           value: 'Production'
+        }
+        {
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: appInsights.properties.ConnectionString
         }
       ]
       connectionStrings: [
@@ -143,6 +165,43 @@ resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
 }
 
 // =====================================================
+// Log Analytics Workspace (backs Application Insights)
+// =====================================================
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: '${appName}-logs-${resourceToken}'
+  location: location
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+    retentionInDays: 30
+  }
+  tags: {
+    environment: environmentName
+    application: 'ChoresWizard2000'
+  }
+}
+
+// =====================================================
+// Application Insights (workspace-based)
+// Consumed by the app via APPLICATIONINSIGHTS_CONNECTION_STRING.
+// =====================================================
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: '${appName}-ai-${resourceToken}'
+  location: location
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: logAnalytics.id
+    IngestionMode: 'LogAnalytics'
+  }
+  tags: {
+    environment: environmentName
+    application: 'ChoresWizard2000'
+  }
+}
+
+// =====================================================
 // Outputs
 // =====================================================
 @description('The URL of the deployed web app')
@@ -162,3 +221,9 @@ output sqlDatabaseName string = sqlDatabase.name
 
 @description('The name of the resource group')
 output resourceGroupName string = resourceGroup().name
+
+@description('The principal ID of the web app system-assigned managed identity (grant this DB access)')
+output webAppPrincipalId string = webApp.identity.principalId
+
+@description('The name of the Application Insights resource')
+output appInsightsName string = appInsights.name
