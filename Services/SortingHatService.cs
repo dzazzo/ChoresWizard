@@ -41,6 +41,39 @@ public class SortingHatService
     /// </summary>
     public MonthPeriod GetCurrentMonth() => MonthPeriod.Current(_timeProvider, _timeZone);
 
+    /// <summary>
+    /// Idempotently ensures <paramref name="period"/> has assignments, and returns what it
+    /// did. This is the automated counterpart to the interactive
+    /// <see cref="Controllers.SortingHatController.Sort"/> path, used by auto-resort (#5).
+    ///
+    /// Semantics are deliberate (issue #5, hard constraint #4): a month that ALREADY has
+    /// assignments is left completely untouched — a human may have hand-tuned it, and
+    /// silently overwriting that is a worse failure than not running. Only an empty month
+    /// is generated. Because the decision is a simple "is this month empty?" check, running
+    /// twice (retries, restarts, overlapping windows) can never double-assign: the second
+    /// run sees a populated month and no-ops.
+    /// </summary>
+    public async Task<EnsureSortedResult> EnsureMonthSortedAsync(
+        MonthPeriod period,
+        CancellationToken cancellationToken = default)
+    {
+        var alreadyPopulated = await _context.ChoreAssignments
+            .AnyAsync(ca => ca.Month == period.Month && ca.Year == period.Year, cancellationToken);
+
+        if (alreadyPopulated)
+        {
+            _logger.LogInformation(
+                "Auto-resort: {Month} already has assignments; leaving it untouched (no overwrite).",
+                period);
+            return new EnsureSortedResult(SortOutcome.AlreadyPopulated, 0);
+        }
+
+        var created = await DistributeChoresAsync(period.Year, period.Month);
+        _logger.LogInformation(
+            "Auto-resort: generated {Count} assignments for {Month}.", created.Count, period);
+        return new EnsureSortedResult(SortOutcome.Generated, created.Count);
+    }
+
     // The current UTC instant used for persisted timestamps. Timestamps stay in UTC;
     // only month *determination* is localized.
     private DateTime UtcNow => _timeProvider.GetUtcNow().UtcDateTime;

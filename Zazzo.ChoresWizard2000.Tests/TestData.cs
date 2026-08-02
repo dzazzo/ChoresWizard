@@ -67,6 +67,23 @@ public static class TestData
         TimeZoneInfo? timeZone = null)
         => new(context, NullLogger<SortingHatService>.Instance, new Random(seed), timeProvider, timeZone);
 
+    /// <summary>
+    /// Builds an <see cref="AutoResortRunner"/> over the supplied context with a deterministic
+    /// service, a pinned clock and Pacific (by default) so the last-local-day decision is fully
+    /// controlled with zero wall-clock dependence.
+    /// </summary>
+    public static AutoResortRunner CreateAutoResortRunner(
+        ChoresDbContext context,
+        TimeProvider timeProvider,
+        TimeZoneInfo? timeZone = null,
+        int seed = 12345)
+    {
+        var zone = timeZone ?? Pacific;
+        var service = CreateService(context, seed, timeProvider, zone);
+        return new AutoResortRunner(
+            service, timeProvider, zone, NullLogger<AutoResortRunner>.Instance);
+    }
+
     public static FamilyMember AddMember(
         ChoresDbContext ctx,
         string name,
