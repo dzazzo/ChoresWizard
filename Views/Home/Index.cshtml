@@ -8,6 +8,14 @@
     <p class="lead">Monthly Chore Distribution for the Zazzo Family</p>
 </div>
 
+@if (ViewData["DatabaseUnavailable"] is true)
+{
+    <div class="alert alert-warning text-center my-4" role="alert">
+        🪄 The magic is still warming up — we couldn't reach the enchanted ledger just now.
+        Please refresh in a moment.
+    </div>
+}
+
 <div class="row my-4">
     <div class="col-md-12 text-center">
         <a asp-controller="SortingHat" asp-action="Ceremony" class="btn btn-primary btn-lg magical-button">
