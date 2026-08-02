@@ -9,7 +9,7 @@
 {
     <div class="card">
         <div class="card-body">
-            <h3>Current Month - @DateTime.Now.ToString("MMMM yyyy")</h3>
+            <h3>Current Month - @ViewData["CurrentMonthLabel"]</h3>
             @foreach (var group in Model.GroupBy(a => a.FamilyMember))
             {
                 <div class="mb-3">
