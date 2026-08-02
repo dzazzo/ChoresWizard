@@ -1,0 +1,85 @@
+@model Zazzo.ChoresWizard2000.Models.Chore
+@{
+    var familyMembers = (IEnumerable<SelectListItem>)ViewBag.FamilyMembers;
+}
+
+<div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+
+<wa-input name="@Html.NameFor(model => model.Name)"
+          id="@Html.IdFor(model => model.Name)"
+          value="@Model?.Name"
+          label="@Html.DisplayNameFor(model => model.Name)"
+          required></wa-input>
+<span asp-validation-for="Name" class="field-validation-error"></span>
+
+<wa-textarea name="@Html.NameFor(model => model.Description)"
+             id="@Html.IdFor(model => model.Description)"
+             value="@Model?.Description"
+             label="@Html.DisplayNameFor(model => model.Description)"
+             rows="3"></wa-textarea>
+<span asp-validation-for="Description" class="field-validation-error"></span>
+
+<wa-input name="@Html.NameFor(model => model.Category)"
+          id="@Html.IdFor(model => model.Category)"
+          value="@Model?.Category"
+          label="@Html.DisplayNameFor(model => model.Category)"
+          placeholder="e.g., Cat Care, Kitchen, Bathroom"
+          hint="Optional: group related chores so one person does not get too many from the same category."></wa-input>
+<span asp-validation-for="Category" class="field-validation-error"></span>
+
+<wa-select name="@Html.NameFor(model => model.Frequency)"
+           id="@Html.IdFor(model => model.Frequency)"
+           value="@((int)(Model?.Frequency ?? ChoreFrequency.Daily))"
+           label="@Html.DisplayNameFor(model => model.Frequency)"
+           required>
+    @foreach (var frequency in Enum.GetValues<ChoreFrequency>())
+    {
+        <wa-option value="@((int)frequency)">@frequency</wa-option>
+    }
+</wa-select>
+<span asp-validation-for="Frequency" class="field-validation-error"></span>
+
+<wa-select name="@Html.NameFor(model => model.AgeRestriction)"
+           id="@Html.IdFor(model => model.AgeRestriction)"
+           value="@((int)(Model?.AgeRestriction ?? AgeRestriction.Everyone))"
+           label="@Html.DisplayNameFor(model => model.AgeRestriction)"
+           required>
+    @foreach (var restriction in Enum.GetValues<AgeRestriction>())
+    {
+        <wa-option value="@((int)restriction)">@restriction</wa-option>
+    }
+</wa-select>
+<span asp-validation-for="AgeRestriction" class="field-validation-error"></span>
+
+<wa-select name="@Html.NameFor(model => model.PinnedToFamilyMemberId)"
+           id="@Html.IdFor(model => model.PinnedToFamilyMemberId)"
+           value="@(Model?.PinnedToFamilyMemberId?.ToString() ?? string.Empty)"
+           label="📌 Pin to Family Member"
+           hint="Optional: always assign this chore to a specific person during the Sorting Ceremony.">
+    @foreach (var member in familyMembers)
+    {
+        <wa-option value="@member.Value">@member.Text</wa-option>
+    }
+</wa-select>
+<span asp-validation-for="PinnedToFamilyMemberId" class="field-validation-error"></span>
+
+<wa-select name="@Html.NameFor(model => model.AssignToGroup)"
+           id="@Html.IdFor(model => model.AssignToGroup)"
+           value="@((int)(Model?.AssignToGroup ?? AssignToGroup.OnePersonOnly))"
+           label="👥 Assign to Group"
+           hint="Assign this chore to every member of a group, such as Clean Your Room for all kids."
+           required>
+    @foreach (var group in Enum.GetValues<AssignToGroup>())
+    {
+        <wa-option value="@((int)group)">@group</wa-option>
+    }
+</wa-select>
+<span asp-validation-for="AssignToGroup" class="field-validation-error"></span>
+
+<wa-checkbox name="@Html.NameFor(model => model.IsActive)"
+             id="@Html.IdFor(model => model.IsActive)"
+             value="true"
+             checked="@((Model?.IsActive ?? true) ? "checked" : null)">
+    Is Active
+</wa-checkbox>
+<input type="hidden" name="@Html.NameFor(model => model.IsActive)" value="false" />

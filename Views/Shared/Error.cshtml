@@ -3,8 +3,11 @@
     ViewData["Title"] = "Error";
 }
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
+<wa-callout variant="danger" class="page-callout">
+    <wa-icon slot="icon" name="circle-exclamation"></wa-icon>
+    <strong>Something went wrong.</strong><br />
+    An error occurred while processing your request.
+</wa-callout>
 
 @if (Model.ShowRequestId)
 {
@@ -13,7 +16,7 @@
     </p>
 }
 
-<h3>Development Mode</h3>
+<h2>Development Mode</h2>
 <p>
     Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
 </p>

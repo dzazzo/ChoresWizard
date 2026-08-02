@@ -3,76 +3,91 @@
     ViewData["Title"] = "Edit Assignments";
 }
 
-<h2>📝 Edit Assignments - @ViewData["CurrentMonthLabel"]</h2>
-
-<p class="text-muted">
-    Modify or remove individual chore assignments. Changes made here will update the current month's distribution.
-</p>
+<header class="page-heading">
+    <div>
+        <h1>📝 Edit Assignments - @ViewData["CurrentMonthLabel"]</h1>
+        <p>Modify or remove individual assignments for the current month.</p>
+    </div>
+</header>
 
 @if (Model != null && Model.Any())
 {
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Chore</th>
-                <th>Category</th>
-                <th>Frequency</th>
-                <th>Assigned To</th>
-                <th>Type</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var assignment in Model)
-            {
+    <div class="table-shell">
+        <table class="data-table">
+            <thead>
                 <tr>
-                    <td>@assignment.Chore?.Name</td>
-                    <td>
-                        @if (!string.IsNullOrWhiteSpace(assignment.Chore?.Category))
-                        {
-                            <span class="badge bg-info">@assignment.Chore.Category</span>
-                        }
-                    </td>
-                    <td>@assignment.Chore?.Frequency</td>
-                    <td><strong>@assignment.FamilyMember?.Name</strong></td>
-                    <td>
-                        @if (assignment.Chore?.AssignToGroup != Zazzo.ChoresWizard2000.Models.AssignToGroup.OnePersonOnly)
-                        {
-                            <span class="badge bg-success">👥 @assignment.Chore?.AssignToGroup</span>
-                        }
-                        else if (assignment.Chore?.PinnedToFamilyMemberId.HasValue == true)
-                        {
-                            <span class="badge bg-warning text-dark">📌 Pinned</span>
-                        }
-                        else
-                        {
-                            <span class="text-muted">Random</span>
-                        }
-                    </td>
-                    <td>
-                        <a asp-action="Edit" asp-route-id="@assignment.Id" class="btn btn-sm btn-primary">
-                            ✏️ Reassign
-                        </a>
-                        <form asp-action="Delete" asp-route-id="@assignment.Id" method="post" style="display: inline-block;"
-                              onsubmit="return confirm('Are you sure you want to remove this assignment?');">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-sm btn-danger">🗑️ Remove</button>
-                        </form>
-                    </td>
+                    <th scope="col">Chore</th>
+                    <th scope="col">Category</th>
+                    <th scope="col">Frequency</th>
+                    <th scope="col">Assigned To</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Actions</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var assignment in Model)
+                {
+                    <tr>
+                        <td data-label="Chore">@assignment.Chore?.Name</td>
+                        <td data-label="Category">
+                            @if (!string.IsNullOrWhiteSpace(assignment.Chore?.Category))
+                            {
+                                <wa-badge variant="brand" pill>@assignment.Chore.Category</wa-badge>
+                            }
+                        </td>
+                        <td data-label="Frequency">@assignment.Chore?.Frequency</td>
+                        <td data-label="Assigned To"><strong>@assignment.FamilyMember?.Name</strong></td>
+                        <td data-label="Type">
+                            @if (assignment.Chore?.AssignToGroup != Zazzo.ChoresWizard2000.Models.AssignToGroup.OnePersonOnly)
+                            {
+                                <wa-badge variant="success">👥 @assignment.Chore?.AssignToGroup</wa-badge>
+                            }
+                            else if (assignment.Chore?.PinnedToFamilyMemberId.HasValue == true)
+                            {
+                                <wa-badge variant="warning">📌 Pinned</wa-badge>
+                            }
+                            else
+                            {
+                                <span class="muted">Random</span>
+                            }
+                        </td>
+                        <td data-label="Actions">
+                            <div class="table-actions">
+                                <wa-button href="@Url.Action("Edit", new { id = assignment.Id })" size="small" variant="brand" appearance="outlined">
+                                    ✏️ Reassign
+                                </wa-button>
+                                <form asp-action="Delete" asp-route-id="@assignment.Id" method="post"
+                                      onsubmit="return confirm('Are you sure you want to remove this assignment?');">
+                                    @Html.AntiForgeryToken()
+                                    <wa-button type="submit" size="small" variant="danger" appearance="filled">
+                                        <wa-icon slot="start" name="trash"></wa-icon>
+                                        Remove
+                                    </wa-button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 }
 else
 {
-    <div class="alert alert-info">
-        <h5>No assignments yet!</h5>
-        <p>Use the Sorting Hat ceremony to distribute chores first.</p>
-    </div>
+    <wa-callout variant="brand" class="page-callout">
+        <wa-icon slot="icon" name="sparkles" variant="duotone"></wa-icon>
+        <strong>No assignments yet!</strong><br />
+        Use the Sorting Hat ceremony to distribute chores first.
+    </wa-callout>
 }
 
-<div class="mt-4">
-    <a asp-controller="Home" asp-action="Index" class="btn btn-secondary">← Back to Home</a>
-    <a asp-controller="SortingHat" asp-action="Ceremony" class="btn btn-primary ms-2">🎩 New Sorting Ceremony</a>
+<div class="page-actions">
+    <wa-button href="@Url.Action("Index", "Home")" variant="neutral" appearance="outlined">
+        <wa-icon slot="start" name="arrow-left"></wa-icon>
+        Back to Home
+    </wa-button>
+    <wa-button href="@Url.Action("Ceremony", "SortingHat")" variant="brand" appearance="filled">
+        <wa-icon slot="start" name="hat-wizard" variant="duotone"></wa-icon>
+        New Sorting Ceremony
+    </wa-button>
 </div>

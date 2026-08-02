@@ -3,59 +3,77 @@
     ViewData["Title"] = "Chores";
 }
 
-<h2>🧹 Chores</h2>
+<header class="page-heading">
+    <div>
+        <h1>🧹 Chores</h1>
+        <p>Manage the tasks available to the Sorting Hat.</p>
+    </div>
+    <wa-button href="@Url.Action("Create")" variant="success" appearance="filled">
+        <wa-icon slot="start" name="plus"></wa-icon>
+        Add New Chore
+    </wa-button>
+</header>
 
-<p>
-    <a asp-action="Create" class="btn btn-success">Add New Chore</a>
-</p>
-
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Category</th>
-            <th>Frequency</th>
-            <th>Age Restriction</th>
-            <th>Assignment</th>
-            <th>Active</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
+<div class="table-shell">
+    <table class="data-table">
+        <thead>
             <tr>
-                <td>@item.Name</td>
-                <td>
-                    @if (!string.IsNullOrWhiteSpace(item.Category))
-                    {
-                        <span class="badge bg-info">@item.Category</span>
-                    }
-                </td>
-                <td>@item.Frequency</td>
-                <td>@item.AgeRestriction</td>
-                <td>
-                    @if (item.AssignToGroup != Zazzo.ChoresWizard2000.Models.AssignToGroup.OnePersonOnly)
-                    {
-                        <span class="badge bg-success">👥 @item.AssignToGroup</span>
-                    }
-                    else if (item.PinnedToFamilyMember != null)
-                    {
-                        <span class="badge bg-warning text-dark">📌 @item.PinnedToFamilyMember.Name</span>
-                    }
-                    else
-                    {
-                        <span class="text-muted">Random</span>
-                    }
-                </td>
-                <td>@(item.IsActive ? "✓" : "")</td>
-                <td>
-                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-primary">Edit</a>
-                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Delete</a>
-                </td>
+                <th scope="col">Name</th>
+                <th scope="col">Category</th>
+                <th scope="col">Frequency</th>
+                <th scope="col">Age Restriction</th>
+                <th scope="col">Assignment</th>
+                <th scope="col">Active</th>
+                <th scope="col">Actions</th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td data-label="Name"><strong>@item.Name</strong></td>
+                    <td data-label="Category">
+                        @if (!string.IsNullOrWhiteSpace(item.Category))
+                        {
+                            <wa-badge variant="brand" pill>@item.Category</wa-badge>
+                        }
+                    </td>
+                    <td data-label="Frequency">@item.Frequency</td>
+                    <td data-label="Age Restriction">@item.AgeRestriction</td>
+                    <td data-label="Assignment">
+                        @if (item.AssignToGroup != Zazzo.ChoresWizard2000.Models.AssignToGroup.OnePersonOnly)
+                        {
+                            <wa-badge variant="success">👥 @item.AssignToGroup</wa-badge>
+                        }
+                        else if (item.PinnedToFamilyMember != null)
+                        {
+                            <wa-badge variant="warning">📌 @item.PinnedToFamilyMember.Name</wa-badge>
+                        }
+                        else
+                        {
+                            <span class="muted">Random</span>
+                        }
+                    </td>
+                    <td data-label="Active">
+                        <wa-badge variant="@(item.IsActive ? "success" : "neutral")" pill>
+                            @(item.IsActive ? "Active" : "Inactive")
+                        </wa-badge>
+                    </td>
+                    <td data-label="Actions">
+                        <div class="table-actions">
+                            <wa-button href="@Url.Action("Edit", new { id = item.Id })" size="small" variant="brand" appearance="outlined">Edit</wa-button>
+                            <wa-button href="@Url.Action("Delete", new { id = item.Id })" size="small" variant="danger" appearance="outlined">Delete</wa-button>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
 
-<a asp-controller="Home" asp-action="Index" class="btn btn-secondary">← Back to Home</a>
+<div class="page-actions">
+    <wa-button href="@Url.Action("Index", "Home")" variant="neutral" appearance="outlined">
+        <wa-icon slot="start" name="arrow-left"></wa-icon>
+        Back to Home
+    </wa-button>
+</div>

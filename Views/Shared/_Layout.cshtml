@@ -1,58 +1,95 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+﻿@inject IConfiguration Configuration
+@{
+    var webAwesomeKitCode = Configuration["WebAwesome:KitCode"];
+}
+<!DOCTYPE html>
+<html lang="en" class="wa-cloak">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - The Sorting Hat</title>
     <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <script>
+        window.loadWebAwesomeFallback = () => {
+            if (document.querySelector('[data-webawesome-fallback]')) {
+                return;
+            }
+
+            for (const href of [
+                'https://ka-f.webawesome.com/webawesome@3.11.0/styles/themes/default.css',
+                'https://ka-f.webawesome.com/webawesome@3.11.0/styles/utilities.css'
+            ]) {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = href;
+                link.dataset.webawesomeFallback = '';
+                document.head.appendChild(link);
+            }
+
+            const loader = document.createElement('script');
+            loader.type = 'module';
+            loader.src = 'https://ka-f.webawesome.com/webawesome@3.11.0/webawesome.loader.js';
+            loader.dataset.webawesomeFallback = '';
+            document.head.appendChild(loader);
+        };
+    </script>
+    @if (!string.IsNullOrWhiteSpace(webAwesomeKitCode))
+    {
+        <script src="https://kit.webawesome.com/@(webAwesomeKitCode).js"
+                crossorigin="anonymous"
+                onerror="window.loadWebAwesomeFallback()"></script>
+    }
+    else
+    {
+        <script>window.loadWebAwesomeFallback();</script>
+    }
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Zazzo.ChoresWizard2000.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand magical-brand" asp-area="" asp-controller="Home" asp-action="Index">
-                    🎩 The Sorting Hat
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-light" asp-area="" asp-controller="Home" asp-action="Index">🏠 Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light" asp-area="" asp-controller="FamilyMembers" asp-action="Index">👨‍👩‍👧‍👦 Family</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light" asp-area="" asp-controller="Chores" asp-action="Index">🧹 Chores</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light" asp-area="" asp-controller="SortingHat" asp-action="Ceremony">✨ Sort</a>
-                        </li>
-                    </ul>
-                    <partial name="_LoginPartial" />
-                </div>
-            </div>
+    <wa-page mobile-breakpoint="800">
+        <header slot="header" class="app-header">
+            <a class="magical-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                <wa-icon name="hat-wizard" variant="duotone"></wa-icon>
+                The Sorting Hat
+            </a>
+            <partial name="_LoginPartial" />
+        </header>
+
+        <nav slot="navigation" class="app-navigation" aria-label="Primary navigation">
+            <a asp-area="" asp-controller="Home" asp-action="Index">
+                <wa-icon name="house" variant="duotone"></wa-icon>
+                Home
+            </a>
+            <a asp-area="" asp-controller="FamilyMembers" asp-action="Index">
+                <wa-icon name="family" variant="duotone"></wa-icon>
+                Family
+            </a>
+            <a asp-area="" asp-controller="Chores" asp-action="Index">
+                <wa-icon name="broom-wide" variant="duotone"></wa-icon>
+                Chores
+            </a>
+            <a asp-area="" asp-controller="SortingHat" asp-action="Ceremony">
+                <wa-icon name="sparkles" variant="duotone"></wa-icon>
+                Sort
+            </a>
         </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
+
+        <main class="app-main" role="main">
+            @if (string.IsNullOrWhiteSpace(webAwesomeKitCode))
+            {
+                <div class="configuration-warning" role="alert">
+                    Web Awesome is not configured. Set <code>WebAwesome__KitCode</code> to load the UI kit.
+                </div>
+            }
             @RenderBody()
         </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2025 - The Sorting Hat for the Zazzo Family ✨
-        </div>
-    </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+        <footer slot="footer" class="app-footer">
+            &copy; @DateTime.Now.Year - The Sorting Hat for the Zazzo Family ✨
+        </footer>
+    </wa-page>
+
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
