@@ -162,6 +162,23 @@ builder.Services.Configure<ExportOptions>(
     builder.Configuration.GetSection(ExportOptions.SectionName));
 builder.Services.AddScoped<ChoreExportService>();
 
+// Output cache for the anonymous ICS feed. This is a COST control, not a latency
+// tweak: the Azure SQL database is a serverless tier that auto-pauses when idle, and
+// Skylight polls the subscribed feed on its own schedule. Without caching, those polls
+// alone would keep the database awake — and billing — around the clock. Assignments
+// change at most once a month, so serving a cached copy costs nothing in freshness.
+// The built-in policy only caches GET/HEAD 200 responses, so wrong-token 404s are
+// never cached and cannot be used to flood the cache.
+var feedCacheDuration = builder.Configuration
+    .GetSection(ExportOptions.SectionName)
+    .Get<ExportOptions>()?.ResolvedFeedCacheDuration
+    ?? TimeSpan.FromSeconds(ExportOptions.DefaultFeedCacheSeconds);
+
+builder.Services.AddOutputCache(options =>
+{
+    options.AddPolicy(ExportOptions.FeedCachePolicyName, policy => policy.Expire(feedCacheDuration));
+});
+
 var app = builder.Build();
 
 // Report the resolved household time zone so month-boundary behavior is never
@@ -245,6 +262,12 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Output caching for the anonymous Skylight ICS feed (issue #9). Placed AFTER the
+// authorization middleware on purpose: authorization always runs, and only the
+// database query + ICS render are served from cache. Without this call the
+// [OutputCache] attribute on ExportController.Feed is silently inert.
+app.UseOutputCache();
 
 app.MapStaticAssets();
 

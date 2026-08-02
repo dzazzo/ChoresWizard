@@ -1,6 +1,7 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.Extensions.Options;
 using Xunit;
 using Zazzo.ChoresWizard2000.Configuration;
@@ -49,6 +50,54 @@ public class ExportControllerTests
         var httpGet = method.GetCustomAttribute<HttpGetAttribute>();
         Assert.NotNull(httpGet);
         Assert.Equal("feed/{token}/chores.ics", httpGet!.Template);
+    }
+
+    [Fact]
+    public void FeedAction_IsOutputCached_SoSkylightPollingCannotKeepTheServerlessDbAwake()
+    {
+        var method = typeof(ExportController).GetMethod(nameof(ExportController.Feed))!;
+
+        // The feed is anonymous and polled by Skylight on its own schedule. The Azure SQL
+        // database is a serverless tier that auto-pauses when idle, so an uncached feed
+        // would query it often enough to keep it awake — and billing — continuously.
+        // If someone removes this attribute, that cost comes back silently.
+        var cache = method.GetCustomAttribute<OutputCacheAttribute>();
+        Assert.NotNull(cache);
+        Assert.Equal(ExportOptions.FeedCachePolicyName, cache!.PolicyName);
+    }
+
+    [Fact]
+    public void PdfAndCsvActions_AreNotOutputCached()
+    {
+        var pdf = typeof(ExportController).GetMethod(nameof(ExportController.Pdf))!;
+        var csv = typeof(ExportController).GetMethod(nameof(ExportController.Csv))!;
+
+        // Only the anonymous feed is cached. These are authenticated and take
+        // ?year=&month=, so caching them would risk serving one month's export for another.
+        Assert.Null(pdf.GetCustomAttribute<OutputCacheAttribute>());
+        Assert.Null(csv.GetCustomAttribute<OutputCacheAttribute>());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void FeedCacheDuration_FallsBackToDefault_WhenConfiguredNonPositive(int configured)
+    {
+        // A zero/negative value would otherwise disable caching and quietly start the
+        // serverless database meter running, so it clamps to the default instead.
+        var options = new ExportOptions { FeedCacheSeconds = configured };
+
+        Assert.Equal(
+            TimeSpan.FromSeconds(ExportOptions.DefaultFeedCacheSeconds),
+            options.ResolvedFeedCacheDuration);
+    }
+
+    [Fact]
+    public void FeedCacheDuration_HonoursConfiguredValue()
+    {
+        var options = new ExportOptions { FeedCacheSeconds = 120 };
+
+        Assert.Equal(TimeSpan.FromSeconds(120), options.ResolvedFeedCacheDuration);
     }
 
     [Fact]

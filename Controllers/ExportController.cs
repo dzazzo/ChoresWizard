@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.Extensions.Options;
 using Zazzo.ChoresWizard2000.Configuration;
 using Zazzo.ChoresWizard2000.Models;
@@ -42,8 +43,15 @@ public sealed class ExportController : Controller
     /// configuration (never hardcoded), compared in constant time, and never logged.
     /// While no token is configured the feed is disabled and returns 404, so an
     /// unconfigured deployment never exposes chores anonymously.</para>
+    /// <para><b>Output-cached deliberately.</b> The database is a serverless tier that
+    /// auto-pauses when idle. Skylight polls this feed on its own schedule, so querying
+    /// on every poll would keep the database awake continuously and bill for it. The
+    /// response is cached (see <see cref="ExportOptions.FeedCacheSeconds"/>); assignments
+    /// change at most once a month, so this costs nothing in freshness. Only 200s are
+    /// cached, so a flood of wrong-token 404s cannot fill the cache.</para>
     /// </summary>
     [AllowAnonymous]
+    [OutputCache(PolicyName = ExportOptions.FeedCachePolicyName)]
     [HttpGet("feed/{token}/chores.ics")]
     public async Task<IActionResult> Feed(string token, CancellationToken cancellationToken)
     {
