@@ -9,8 +9,16 @@ using Zazzo.ChoresWizard2000.Configuration;
 using Zazzo.ChoresWizard2000.Data;
 using Zazzo.ChoresWizard2000.HealthChecks;
 using Zazzo.ChoresWizard2000.Services;
+using Zazzo.ChoresWizard2000.Services.Export;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// QuestPDF Community licence acknowledgement (issue #9). Free for organisations
+// under $1M USD annual revenue; this household app qualifies. This is a real licence
+// term, not decoration — QuestPDF throws at first document generation without it.
+// The pinned package is 2026.7.2: never 'dotnet add package QuestPDF' unpinned, as
+// the typo version 2202.8.2 sorts as newest forever and is a four-year-old build.
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
 // Ensure logs reliably reach the App Service log stream (stdout).
 builder.Logging.AddSimpleConsole(options =>
@@ -147,6 +155,30 @@ builder.Services.Configure<AutoResortOptions>(
 builder.Services.AddScoped<AutoResortRunner>();
 builder.Services.AddHostedService<AutoResortScheduler>();
 
+// Chore export (issue #9): ICS feed, PDF, CSV. Token that gates the anonymous feed
+// is bound from the "Export" section; it is empty in committed config and must be
+// set out of band (user-secrets / Export__FeedToken app setting).
+builder.Services.Configure<ExportOptions>(
+    builder.Configuration.GetSection(ExportOptions.SectionName));
+builder.Services.AddScoped<ChoreExportService>();
+
+// Output cache for the anonymous ICS feed. This is a COST control, not a latency
+// tweak: the Azure SQL database is a serverless tier that auto-pauses when idle, and
+// Skylight polls the subscribed feed on its own schedule. Without caching, those polls
+// alone would keep the database awake — and billing — around the clock. Assignments
+// change at most once a month, so serving a cached copy costs nothing in freshness.
+// The built-in policy only caches GET/HEAD 200 responses, so wrong-token 404s are
+// never cached and cannot be used to flood the cache.
+var feedCacheDuration = builder.Configuration
+    .GetSection(ExportOptions.SectionName)
+    .Get<ExportOptions>()?.ResolvedFeedCacheDuration
+    ?? TimeSpan.FromSeconds(ExportOptions.DefaultFeedCacheSeconds);
+
+builder.Services.AddOutputCache(options =>
+{
+    options.AddPolicy(ExportOptions.FeedCachePolicyName, policy => policy.Expire(feedCacheDuration));
+});
+
 var app = builder.Build();
 
 // Report the resolved household time zone so month-boundary behavior is never
@@ -230,6 +262,12 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Output caching for the anonymous Skylight ICS feed (issue #9). Placed AFTER the
+// authorization middleware on purpose: authorization always runs, and only the
+// database query + ICS render are served from cache. Without this call the
+// [OutputCache] attribute on ExportController.Feed is silently inert.
+app.UseOutputCache();
 
 app.MapStaticAssets();
 
