@@ -1,0 +1,84 @@
+# Manually-dispatched infrastructure workflow (issue #4 / #12).
+#
+# Deploying bicep against the LIVE environment can be destructive, so this
+# workflow defaults to `what-if` (a read-only diff) and never runs on push.
+# Choose `deploy` explicitly to apply. It authenticates with the same OIDC
+# deployment identity as the app pipeline.
+#
+# NOTE: the data tier (SQL server / serverless DB / private endpoint) is gated
+# in main.bicep behind `deployDataTier` (default false). Leave it false unless
+# you are intentionally (re)building the data tier and have supplied the SQL
+# admin password — see docs/azure-setup.md.
+#
+# RBAC PREREQUISITE: the OIDC deployment identity `oidc-msi-a9f6` currently holds
+# only *Website Contributor scoped to the zazzo-chores site*, NOT the resource
+# group. That is enough for the app pipeline, but this workflow operates at
+# resource-group scope:
+#   - `what-if` needs at least **Reader on chores-app**.
+#   - `deploy` needs **Contributor on chores-app** (or narrower write roles).
+# Without it, the first run fails at the az deployment step. Granting broader
+# scope to a GitHub-triggered identity expands blast radius beyond one web app —
+# this is a deliberate operator decision, documented in docs/azure-setup.md.
+
+name: Infrastructure (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'what-if (safe diff) or deploy (apply)'
+        type: choice
+        default: what-if
+        options: [what-if, deploy]
+      deployDataTier:
+        description: 'Also manage SQL server/DB/private endpoint (DANGEROUS)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: infra-chores-app
+  cancel-in-progress: false
+
+env:
+  AZURE_RESOURCE_GROUP: chores-app
+
+jobs:
+  infra:
+    name: ${{ inputs.action }}
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: What-if
+        if: inputs.action == 'what-if'
+        run: |
+          az deployment group what-if \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --template-file infra/main.bicep \
+            --parameters infra/main.bicepparam \
+            --parameters deployDataTier=${{ inputs.deployDataTier }}
+
+      - name: Deploy
+        if: inputs.action == 'deploy'
+        run: |
+          az deployment group create \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --template-file infra/main.bicep \
+            --parameters infra/main.bicepparam \
+            --parameters deployDataTier=${{ inputs.deployDataTier }}
+
+      - name: Azure logout
+        if: always()
+        run: az logout || true
