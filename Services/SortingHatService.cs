@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Zazzo.ChoresWizard2000.Configuration;
 using Zazzo.ChoresWizard2000.Data;
 using Zazzo.ChoresWizard2000.Models;
 
@@ -10,15 +11,39 @@ public class SortingHatService
     private readonly ChoresDbContext _context;
     private readonly ILogger<SortingHatService> _logger;
     private readonly Random _random;
+    private readonly TimeProvider _timeProvider;
+    private readonly TimeZoneInfo _timeZone;
 
-    public SortingHatService(ChoresDbContext context, ILogger<SortingHatService> logger, Random? random = null)
+    public SortingHatService(
+        ChoresDbContext context,
+        ILogger<SortingHatService> logger,
+        Random? random = null,
+        TimeProvider? timeProvider = null,
+        TimeZoneInfo? timeZone = null)
     {
         _context = context;
         _logger = logger;
         // Default to a non-seeded Random so production DI (which does not register
         // Random) behaves exactly as before. Tests inject a seeded Random for determinism.
         _random = random ?? new Random();
+        // TimeProvider/TimeZoneInfo follow the same optional-injection pattern: production
+        // DI registers both (see Program.cs) and tests pass fixed values to drive month
+        // determination without any wall-clock dependence.
+        _timeProvider = timeProvider ?? TimeProvider.System;
+        _timeZone = timeZone ?? TimeZoneInfo.FindSystemTimeZoneById(HouseholdOptions.DefaultTimeZone);
     }
+
+    /// <summary>
+    /// The current household month, derived from the injected <see cref="TimeProvider"/>
+    /// projected into the configured local time zone. Callers should use this instead of
+    /// reading <see cref="DateTime.UtcNow"/> so month determination is correct for the
+    /// household (see issue #3).
+    /// </summary>
+    public MonthPeriod GetCurrentMonth() => MonthPeriod.Current(_timeProvider, _timeZone);
+
+    // The current UTC instant used for persisted timestamps. Timestamps stay in UTC;
+    // only month *determination* is localized.
+    private DateTime UtcNow => _timeProvider.GetUtcNow().UtcDateTime;
 
     public async Task<List<ChoreAssignment>> DistributeChoresAsync(int year, int month)
     {
@@ -122,7 +147,7 @@ public class SortingHatService
                     {
                         FamilyMemberId = pinnedMember.Id,
                         ChoreId = chore.Id,
-                        AssignedDate = DateTime.UtcNow,
+                        AssignedDate = UtcNow,
                         Month = month,
                         Year = year
                     });
@@ -193,7 +218,7 @@ public class SortingHatService
             {
                 FamilyMemberId = selectedMember.Id,
                 ChoreId = chore.Id,
-                AssignedDate = DateTime.UtcNow,
+                AssignedDate = UtcNow,
                 Month = month,
                 Year = year
             });
@@ -235,7 +260,7 @@ public class SortingHatService
                 {
                     FamilyMemberId = member.Id,
                     ChoreId = chore.Id,
-                    AssignedDate = DateTime.UtcNow,
+                    AssignedDate = UtcNow,
                     Month = month,
                     Year = year
                 });
@@ -319,11 +344,11 @@ public class SortingHatService
 
     public async Task<List<ChoreAssignment>> GetCurrentMonthAssignmentsAsync()
     {
-        var now = DateTime.UtcNow;
+        var period = GetCurrentMonth();
         return await _context.ChoreAssignments
             .Include(ca => ca.FamilyMember)
             .Include(ca => ca.Chore)
-            .Where(ca => ca.Month == now.Month && ca.Year == now.Year)
+            .Where(ca => ca.Month == period.Month && ca.Year == period.Year)
             .OrderBy(ca => ca.FamilyMember!.Name)
             .ThenBy(ca => ca.Chore!.Name)
             .ToListAsync();
