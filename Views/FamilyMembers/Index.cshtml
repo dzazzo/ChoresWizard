@@ -3,37 +3,55 @@
     ViewData["Title"] = "Family Members";
 }
 
-<h2>👨‍👩‍👧‍👦 Family Members</h2>
+<header class="page-heading">
+    <div>
+        <h1>👨‍👩‍👧‍👦 Family Members</h1>
+        <p>Manage who participates in the monthly Sorting Ceremony.</p>
+    </div>
+    <wa-button href="@Url.Action("Create")" variant="success" appearance="filled">
+        <wa-icon slot="start" name="user-plus"></wa-icon>
+        Add New Member
+    </wa-button>
+</header>
 
-<p>
-    <a asp-action="Create" class="btn btn-success">Add New Member</a>
-</p>
-
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Parent</th>
-            <th>Teen</th>
-            <th>Active</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
+<div class="table-shell">
+    <table class="data-table">
+        <thead>
             <tr>
-                <td>@item.Name</td>
-                <td>@(item.IsParent ? "✓" : "")</td>
-                <td>@(item.IsTeen ? "✓" : "")</td>
-                <td>@(item.IsActive ? "✓" : "")</td>
-                <td>
-                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-primary">Edit</a>
-                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Delete</a>
-                </td>
+                <th scope="col">Name</th>
+                <th scope="col">Parent</th>
+                <th scope="col">Teen</th>
+                <th scope="col">Active</th>
+                <th scope="col">Actions</th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td data-label="Name"><strong>@item.Name</strong></td>
+                    <td data-label="Parent"><wa-icon name="@(item.IsParent ? "circle-check" : "circle-minus")" variant="@(item.IsParent ? "solid" : "regular")"></wa-icon></td>
+                    <td data-label="Teen"><wa-icon name="@(item.IsTeen ? "circle-check" : "circle-minus")" variant="@(item.IsTeen ? "solid" : "regular")"></wa-icon></td>
+                    <td data-label="Active">
+                        <wa-badge variant="@(item.IsActive ? "success" : "neutral")" pill>
+                            @(item.IsActive ? "Active" : "Inactive")
+                        </wa-badge>
+                    </td>
+                    <td data-label="Actions">
+                        <div class="table-actions">
+                            <wa-button href="@Url.Action("Edit", new { id = item.Id })" size="small" variant="brand" appearance="outlined">Edit</wa-button>
+                            <wa-button href="@Url.Action("Delete", new { id = item.Id })" size="small" variant="danger" appearance="outlined">Delete</wa-button>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
 
-<a asp-controller="Home" asp-action="Index" class="btn btn-secondary">← Back to Home</a>
+<div class="page-actions">
+    <wa-button href="@Url.Action("Index", "Home")" variant="neutral" appearance="outlined">
+        <wa-icon slot="start" name="arrow-left"></wa-icon>
+        Back to Home
+    </wa-button>
+</div>

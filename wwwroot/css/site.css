@@ -154,3 +154,373 @@ wa-page[view='mobile'] {
 .btn-primary:hover {
   background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
 }
+
+.hero {
+  margin: 1rem auto 2rem;
+  text-align: center;
+}
+
+.hero h1 {
+  font-size: clamp(2.25rem, 7vw, 4.25rem);
+  margin-bottom: 0.5rem;
+}
+
+.hero p {
+  color: #667085;
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.magical-title,
+.result-title {
+  color: #7c3aed;
+  font-family: Georgia, serif;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.18);
+}
+
+.page-heading {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.page-heading h1,
+.page-heading p {
+  margin: 0;
+}
+
+.page-heading p {
+  color: #667085;
+  margin-top: 0.35rem;
+}
+
+.page-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+.page-actions-centered {
+  justify-content: center;
+}
+
+.page-actions form,
+.table-actions form {
+  margin: 0;
+}
+
+.page-callout {
+  display: block;
+  margin: 1.5rem 0;
+}
+
+.card-grid,
+.assignment-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+
+.home-card-grid {
+  margin: 3rem 0 1rem;
+}
+
+.feature-card {
+  display: block;
+  height: 100%;
+}
+
+.feature-card h2 {
+  font-family: Georgia, serif;
+}
+
+.feature-icon {
+  color: var(--wa-color-brand-60);
+  font-size: 2rem;
+}
+
+.card-heading {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.card-heading h2 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.assignments-card {
+  margin-top: 2rem;
+}
+
+.member-stack {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.member-section {
+  background: rgba(249, 250, 251, 0.9);
+  border: 1px solid #eaecf0;
+  border-radius: 0.75rem;
+  padding: clamp(1rem, 2vw, 1.5rem);
+}
+
+.member-name {
+  color: #7c2d12;
+  font-family: Georgia, serif;
+  margin: 0 0 1rem;
+}
+
+.chore-list {
+  display: grid;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chore-list li {
+  align-items: center;
+  background: white;
+  border-inline-start: 4px solid var(--wa-color-brand-50);
+  border-radius: 0.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+  padding: 0.75rem;
+  transition: transform 150ms ease;
+}
+
+.chore-list li:hover {
+  transform: translateX(0.2rem);
+}
+
+.badge-cluster,
+.table-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.table-shell {
+  background: white;
+  border: 1px solid #eaecf0;
+  border-radius: 0.75rem;
+  box-shadow: 0 0.25rem 1rem rgba(16, 24, 40, 0.08);
+  overflow-x: auto;
+}
+
+.data-table {
+  border-collapse: collapse;
+  min-width: 46rem;
+  width: 100%;
+}
+
+.data-table th,
+.data-table td {
+  border-bottom: 1px solid #eaecf0;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.data-table th {
+  background: #f9fafb;
+  color: #475467;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.data-table tbody tr:hover {
+  background: #fcfcfd;
+}
+
+.muted {
+  color: #667085;
+}
+
+.native-button {
+  appearance: none;
+  background: var(--wa-color-brand-60);
+  border: 1px solid transparent;
+  border-radius: var(--wa-border-radius-m);
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+  min-height: 2.75rem;
+  padding: 0.6rem 1rem;
+}
+
+.native-button-warning {
+  background: var(--wa-color-warning-60);
+  color: #2d1b00;
+}
+
+.native-button-danger {
+  background: var(--wa-color-danger-60);
+}
+
+.native-button-small {
+  min-height: 2rem;
+  padding: 0.3rem 0.65rem;
+}
+
+.ceremony-container,
+.results-container {
+  border-radius: 1rem;
+  min-height: 75vh;
+  padding: clamp(1.25rem, 4vw, 3rem);
+}
+
+.ceremony-container {
+  background: linear-gradient(135deg, #172554 0%, #1e3a8a 50%, #6b21a8 100%);
+  box-shadow: 0 0.75rem 2.5rem rgba(0, 0, 0, 0.3);
+  color: white;
+  text-align: center;
+}
+
+.ceremony-container .magical-title,
+.ceremony-container .ceremony-quote {
+  color: #facc15;
+}
+
+.ceremony-container .hero p {
+  color: #e4e7ec;
+}
+
+.animated-title {
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+.hat-container {
+  margin: 2.5rem 0;
+  perspective: 1000px;
+  position: relative;
+}
+
+.sorting-hat {
+  animation: float 3s ease-in-out infinite;
+  display: inline-block;
+}
+
+.hat-icon {
+  display: block;
+  filter: drop-shadow(0 0.6rem 1.25rem rgba(0, 0, 0, 0.5));
+  font-size: clamp(6rem, 18vw, 9rem);
+}
+
+.ceremony-message {
+  backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 0.75rem;
+  margin: 0 auto 2rem;
+  max-width: 44rem;
+  padding: 1.5rem;
+}
+
+.ceremony-message p {
+  font-size: 1.15rem;
+  margin: 0.5rem;
+}
+
+.ceremony-form {
+  margin: 2rem 0;
+}
+
+.magical-sort-button {
+  animation: pulse 2s infinite;
+  background: linear-gradient(135deg, #facc15 0%, #fef08a 100%);
+  border-radius: 999px;
+  color: #172554;
+  font-size: 1.25rem;
+  padding: 1rem 2rem;
+}
+
+.ceremony-callout {
+  margin: 1rem auto;
+  max-width: 44rem;
+  text-align: left;
+}
+
+.ceremony-back {
+  margin-top: 1.5rem;
+}
+
+.sparkle {
+  animation: sparkle-fade 1s ease-out forwards;
+  position: absolute;
+}
+
+.results-container {
+  background: linear-gradient(135deg, #f8fafc 0%, #dbeafe 100%);
+}
+
+.result-title {
+  animation: slide-in 650ms ease-out;
+}
+
+.member-card {
+  animation: card-appear 500ms ease-out backwards;
+  display: block;
+}
+
+.member-card::part(header) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.result-frequency + .result-frequency {
+  margin-top: 1.25rem;
+}
+
+.result-frequency h3 {
+  border-bottom: 2px solid var(--wa-color-brand-50);
+  color: var(--wa-color-brand-70);
+  font-size: 1rem;
+  padding-bottom: 0.4rem;
+}
+
+@keyframes glow {
+  from { text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5), 0 0 10px #facc15; }
+  to { text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5), 0 0 20px #facc15, 0 0 30px #facc15; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50% { transform: translateY(-1.25rem) rotate(5deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0.5rem 1.25rem rgba(250, 204, 21, 0.4); }
+  50% { box-shadow: 0 0.5rem 2rem rgba(250, 204, 21, 0.75); }
+}
+
+@keyframes sparkle-fade {
+  0% { opacity: 1; transform: translateY(0) scale(0); }
+  50% { opacity: 1; transform: translateY(-2rem) scale(1); }
+  100% { opacity: 0; transform: translateY(-4rem) scale(0); }
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(-2rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes card-appear {
+  from { opacity: 0; transform: scale(0.9) translateY(1rem); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
