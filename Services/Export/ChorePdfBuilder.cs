@@ -30,6 +30,16 @@ public static class ChorePdfBuilder
         QuestPDF.Settings.License = LicenseType.Community;
     }
 
+    /// <summary>
+    /// Title printed at the top of the chart.
+    ///
+    /// Deliberately free of emoji. QuestPDF embeds its default Lato face and the Linux
+    /// container carries no emoji font, so any pictograph renders as a "tofu" box on the
+    /// printed page — a broom emoji here shipped exactly that. Keep this ASCII; see
+    /// <c>ChorePdfGlyphCoverageTests</c>, which fails the build if it drifts.
+    /// </summary>
+    public const string DocumentTitle = "Zazzo Family Chore Chart";
+
     // Order cadences deliberately: Daily first, then the Saturday cadences, then Monthly.
     private static readonly ChoreFrequency[] CadenceOrder =
     [
@@ -60,7 +70,7 @@ public static class ChorePdfBuilder
 
                 page.Header().Column(header =>
                 {
-                    header.Item().Text("🧹 Zazzo Family Chore Chart")
+                    header.Item().Text(DocumentTitle)
                         .FontSize(24).Bold().FontColor(Colors.Purple.Darken3);
                     header.Item().Text(spanText)
                         .FontSize(14).SemiBold().FontColor(Colors.Grey.Darken2);
@@ -146,7 +156,14 @@ public static class ChorePdfBuilder
             {
                 group.Item().Row(row =>
                 {
-                    row.ConstantItem(18).Text("☐").FontSize(13).FontColor(Colors.Grey.Darken1);
+                    // Drawn as a vector square rather than the "☐" character. That glyph is
+                    // absent from the embedded font, so it printed as a tofu box on every
+                    // line. A real rectangle needs no font coverage at all and gives a
+                    // crisper tick box to check off on the fridge.
+                    row.ConstantItem(18).AlignMiddle().Element(box => box
+                        .Width(11).Height(11)
+                        .Border(1).BorderColor(Colors.Grey.Darken1)
+                        .Background(Colors.White));
                     row.RelativeItem().Text(chore.ChoreName).FontSize(11);
                 });
             }
@@ -154,8 +171,9 @@ public static class ChorePdfBuilder
     }
 
     // Explicitly names Saturday for the weekly cadences so the printed chart is
-    // unambiguous, as the owner asked.
-    private static string PdfCadenceLabel(ChoreFrequency cadence) => cadence switch
+    // unambiguous, as the owner asked. Public so glyph-coverage tests can assert these
+    // stay printable in the embedded font.
+    public static string PdfCadenceLabel(ChoreFrequency cadence) => cadence switch
     {
         ChoreFrequency.Daily => "Daily",
         ChoreFrequency.Weekly => "Weekly (Saturdays)",
