@@ -1,21 +1,17 @@
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.Identity.Web
-@inject IAuthorizationService AuthorizationService
-
-<ul class="navbar-nav">
+<div class="account-links">
 @if (User.Identity?.IsAuthenticated ?? false)
 {
-    <li class="nav-item">
-        <span class="nav-link text-light">👋 Hello, @User.Identity.Name!</span>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link text-light" asp-area="MicrosoftIdentity" asp-controller="Account" asp-action="SignOut">🚪 Sign Out</a>
-    </li>
+    <span class="account-greeting">👋 Hello, @User.Identity.Name!</span>
+    <a asp-area="MicrosoftIdentity" asp-controller="Account" asp-action="SignOut">
+        <wa-icon name="arrow-right-from-bracket"></wa-icon>
+        Sign Out
+    </a>
 }
 else
 {
-    <li class="nav-item">
-        <a class="nav-link text-light" asp-area="MicrosoftIdentity" asp-controller="Account" asp-action="SignIn">🔑 Sign In</a>
-    </li>
+    <a asp-area="MicrosoftIdentity" asp-controller="Account" asp-action="SignIn">
+        <wa-icon name="key" variant="duotone"></wa-icon>
+        Sign In
+    </a>
 }
-</ul>
+</div>
