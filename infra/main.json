@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.38.33.27573",
-      "templateHash": "12009601741874507988"
+      "version": "0.46.1.21595",
+      "templateHash": "6947169658648833592"
     }
   },
   "parameters": {
@@ -82,7 +82,7 @@
         "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
         "httpsOnly": true,
         "siteConfig": {
-          "netFrameworkVersion": "v9.0",
+          "netFrameworkVersion": "v10.0",
           "ftpsState": "Disabled",
           "minTlsVersion": "1.2",
           "http20Enabled": true,
