@@ -38,6 +38,69 @@ public class SkylightIcsBuilderTests
         => SkylightIcsBuilder.Build(SingleItem(frequency), generatedAt ?? RanInJuly);
 
     [Fact]
+    public void BiWeeklyChore_RecursEveryOtherSaturday_FromTheFirstSaturday()
+    {
+        var ics = BuildSingle(ChoreFrequency.BiWeekly);
+
+        // Owner-confirmed: every other Saturday, anchored to the first Saturday
+        // (Jan 3 2026), so occurrences are Jan 3 and Jan 17.
+        Assert.Contains("DTSTART;VALUE=DATE:20260103", ics);
+        Assert.Contains("DTEND;VALUE=DATE:20260104", ics);
+        Assert.Contains("FREQ=WEEKLY", ics);
+        Assert.Contains("INTERVAL=2", ics);
+        Assert.Contains("BYDAY=SA", ics);
+        Assert.Contains("UNTIL=20260131", ics);
+    }
+
+    [Fact]
+    public void MonthlyChore_LandsOnTheFirstSaturday_NotTheFirstOfTheMonth()
+    {
+        var ics = BuildSingle(ChoreFrequency.Monthly);
+
+        // Owner-confirmed: the first Saturday (Jan 3), NOT the 1st — the 1st can fall
+        // on any weekday, and this household does chores on the weekend. Jan 1 2026 is
+        // a Thursday, so this assertion genuinely distinguishes the two rules.
+        Assert.Contains("DTSTART;VALUE=DATE:20260103", ics);
+        Assert.Contains("DTEND;VALUE=DATE:20260104", ics);
+        Assert.DoesNotContain("DTSTART;VALUE=DATE:20260101", ics);
+    }
+
+    [Fact]
+    public void MonthlyChore_HasNoRecurrenceRule_SoItOccursExactlyOnce()
+    {
+        var ics = BuildSingle(ChoreFrequency.Monthly);
+
+        // A stray RRULE here would repeat a once-a-month chore all month long.
+        Assert.DoesNotContain("RRULE", ics);
+    }
+
+    [Fact]
+    public void MonthlyAndWeekly_ShareAStartDate_ButOnlyWeeklyRecurs()
+    {
+        var monthly = BuildSingle(ChoreFrequency.Monthly);
+        var weekly = BuildSingle(ChoreFrequency.Weekly);
+
+        // Both anchor to the first Saturday; the ONLY difference is the recurrence.
+        Assert.Contains("DTSTART;VALUE=DATE:20260103", monthly);
+        Assert.Contains("DTSTART;VALUE=DATE:20260103", weekly);
+        Assert.DoesNotContain("RRULE", monthly);
+        Assert.Contains("RRULE", weekly);
+    }
+
+    [Fact]
+    public void EveryFrequency_ProducesAnEvent_SoNoChoreIsSilentlyDropped()
+    {
+        // If a new ChoreFrequency is added without a BuildRecurrence arm, a chore at
+        // that cadence would vanish from the family's calendar with no error anywhere.
+        foreach (var frequency in Enum.GetValues<ChoreFrequency>())
+        {
+            var ics = BuildSingle(frequency);
+            Assert.Contains("BEGIN:VEVENT", ics);
+            Assert.Contains("Feed dog", ics);
+        }
+    }
+
+    [Fact]
     public void DailyChore_StartsOnTheFirst_WithExclusiveDtend()
     {
         var ics = BuildSingle(ChoreFrequency.Daily);
